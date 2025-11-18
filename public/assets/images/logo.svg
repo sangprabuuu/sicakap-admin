@@ -1,0 +1,13 @@
+<svg width="200" height="200" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background circle -->
+  <circle cx="100" cy="100" r="95" fill="#17622a"/>
+  
+  <!-- Inner circle -->
+  <circle cx="100" cy="100" r="75" fill="#ffffff"/>
+  
+  <!-- Letter S -->
+  <text x="100" y="130" font-family="Arial, sans-serif" font-size="80" font-weight="bold" fill="#17622a" text-anchor="middle">S</text>
+  
+  <!-- Bottom text -->
+  <text x="100" y="180" font-family="Arial, sans-serif" font-size="16" fill="#ffffff" text-anchor="middle">SiCakap</text>
+</svg>

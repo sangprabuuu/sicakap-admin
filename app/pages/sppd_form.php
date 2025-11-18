@@ -1,0 +1,189 @@
+<?php
+$pdo = db();
+$user = current_user();
+
+// Get SPPD data if editing
+$id = $_GET['id'] ?? '';
+$sppd = null;
+
+if ($id) {
+    $stmt = $pdo->prepare("SELECT * FROM sppd WHERE id = ?");
+    $stmt->execute([$id]);
+    $sppd = $stmt->fetch();
+    
+    if (!$sppd) {
+        flash_set('Data SPPD tidak ditemukan');
+        redirect('?p=sppd');
+    }
+}
+
+$flash = flash_get();
+?>
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title><?= $sppd ? 'Edit' : 'Tambah' ?> SPPD - SiCakap</title>
+  <link rel="stylesheet" href="<?= h(rtrim(APP_URL, '/')) ?>/assets/css/style.css">
+  <style>
+    .form-group {
+      margin-bottom: 20px;
+    }
+    .form-group label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+      color: #2d5016;
+    }
+    .form-group input[type="text"],
+    .form-group input[type="date"],
+    .form-group input[type="number"],
+    .form-group select {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 14px;
+      background: #f5f5f5;
+    }
+    .form-group input:focus,
+    .form-group select:focus {
+      outline: none;
+      border-color: #4a7c2c;
+      background: #fff;
+    }
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 20px;
+    }
+    .form-actions {
+      margin-top: 30px;
+      display: flex;
+      gap: 10px;
+    }
+    .radio-group {
+      display: flex;
+      gap: 20px;
+      margin-top: 8px;
+    }
+    .radio-group label {
+      font-weight: normal;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .form-header {
+      background: #4a7c2c;
+      color: white;
+      padding: 15px 20px;
+      border-radius: 4px;
+      margin-bottom: 30px;
+      text-align: center;
+      font-size: 18px;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+<?php include __DIR__ . '/_sidebar.php'; ?>
+<div class="main">
+  <header class="topbar">
+    <div class="brand">SiCakap</div>
+    <div class="user">
+      <span>Hai, <?= h($user['name'] ?? $user['email'] ?? 'Administrator') ?></span>
+      <a href="?p=logout" class="logout">Logout</a>
+    </div>
+  </header>
+
+  <section class="content">
+    <div style="max-width: 1200px; margin: 0 auto;">
+      <?php if ($flash): ?>
+      <div class="alert alert-danger"><?= h($flash) ?></div>
+      <?php endif; ?>
+
+      <div class="form-header">
+        <?= $sppd ? 'Edit' : 'Input' ?> SPPD
+      </div>
+
+      <form method="post" action="?p=sppd_save">
+        <?php if ($sppd): ?>
+        <input type="hidden" name="id" value="<?= h($sppd['id']) ?>">
+        <?php endif; ?>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Tanggal Pembuatan Surat</label>
+            <input type="date" name="tanggal" value="<?= h($sppd['tanggal'] ?? date('Y-m-d')) ?>" required>
+          </div>
+          <div class="form-group"></div>
+          <div class="form-group"></div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Nomor</label>
+            <input type="text" name="nomor" placeholder="Nomor" value="<?= h($sppd['nomor'] ?? '') ?>" required>
+          </div>
+          <div class="form-group">
+            <label>Nama</label>
+            <input type="text" name="nama" placeholder="Nama" value="<?= h($sppd['nama'] ?? '') ?>" required>
+          </div>
+          <div class="form-group">
+            <label>NIP</label>
+            <input type="text" name="nip" placeholder="NIP" value="<?= h($sppd['nip'] ?? '') ?>" required>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Jabatan</label>
+            <input type="text" name="jabatan" placeholder="Jabatan" value="<?= h($sppd['jabatan'] ?? '') ?>" required>
+          </div>
+          <div class="form-group">
+            <label>Maksud</label>
+            <input type="text" name="maksud" placeholder="Maksud" value="<?= h($sppd['maksud'] ?? '') ?>" required>
+          </div>
+          <div class="form-group">
+            <label>Tujuan</label>
+            <input type="text" name="tempat_tujuan" placeholder="Tujuan" value="<?= h($sppd['tempat_tujuan'] ?? '') ?>" required>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Durasi</label>
+          <div class="radio-group">
+            <label>
+              <input type="radio" name="durasi" value="1_hari" <?= ($sppd['durasi'] ?? '') == '1_hari' ? 'checked' : '' ?> required>
+              1 hari
+            </label>
+            <label>
+              <input type="radio" name="durasi" value="lebih_dari" <?= ($sppd['durasi'] ?? '') == 'lebih_dari' ? 'checked' : '' ?>>
+              Lebih dari
+            </label>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Tanggal Mulai</label>
+            <input type="date" name="tanggal_mulai" value="<?= h($sppd['tanggal_mulai'] ?? '') ?>" required>
+          </div>
+          <div class="form-group">
+            <label>Tanggal Selesai</label>
+            <input type="date" name="tanggal_selesai" value="<?= h($sppd['tanggal_selesai'] ?? '') ?>" required>
+          </div>
+          <div class="form-group"></div>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">Simpan</button>
+          <a href="?p=sppd" class="btn" style="background:#e63939; color:white;">Batal</a>
+        </div>
+      </form>
+    </div>
+  </section>
+</div>
+</body>
+</html>

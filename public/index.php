@@ -47,9 +47,6 @@ switch ($page) {
     case 'request_detail':
         require __DIR__ . '/../app/pages/request_detail.php';
         break;
-    case 'preview':
-        require __DIR__ . '/../app/pages/preview.php';
-        break;
     case 'issued':
         require __DIR__ . '/../app/pages/issued.php';
         break;

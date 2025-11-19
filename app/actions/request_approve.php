@@ -1,147 +1,130 @@
 <?php
-session_start();
+// Session sudah di-start di index.php, tidak perlu start lagi
 require_once __DIR__ . '/../config.php';
 require_once __DIR__ . '/../db.php';
 require_once __DIR__ . '/../auth.php';
 require_once __DIR__ . '/../functions.php';
 if (!is_logged_in()) exit('Unauthorized');
 
-$pdo = db();
-
 // Get parameters
-$id = isset($_POST['id']) ? intval($_POST['id']) : (isset($_GET['id']) ? intval($_GET['id']) : 0);
+$pengajuan_id = $_POST['pengajuan_id'] ?? $_GET['pengajuan_id'] ?? '';
 $action = $_POST['action'] ?? $_GET['action'] ?? '';
 
-if ($id <= 0) {
-    flash_set('ID permintaan tidak valid');
-    header('Location: ../?p=requests');
+if (empty($pengajuan_id)) {
+    flash_set('ID pengajuan tidak valid');
+    header('Location: ' . APP_URL . '/?p=requests');
     exit;
 }
 
 // Validate action
-$valid_actions = ['approve', 'reject', 'process', 'finish', 'verifikasi', 'update_no_request'];
+$valid_actions = ['proses', 'selesai', 'tolak', 'update_nomor'];
 if (!in_array($action, $valid_actions)) {
     flash_set('Aksi tidak valid');
-    header('Location: ../?p=requests');
+    header('Location: ' . APP_URL . '/?p=requests');
     exit;
 }
 
-// Handle update_no_request action separately
-if ($action === 'update_no_request') {
-    $no_request = trim($_POST['no_request'] ?? '');
+// Handle update_nomor action - Update nomor pengajuan
+if ($action === 'update_nomor') {
+    $nomor_pengajuan = trim($_POST['nomor_pengajuan'] ?? '');
     
-    if (empty($no_request)) {
-        flash_set('No. Request tidak boleh kosong');
-        header('Location: /sicakap-admin/public/?p=request_detail&id=' . $id);
+    if (empty($nomor_pengajuan)) {
+        flash_set('No. Pengajuan tidak boleh kosong');
+        header('Location: ' . APP_URL . '/?p=request_detail&id=' . $pengajuan_id);
         exit;
     }
     
-    try {
-        $stmt = $pdo->prepare("UPDATE letter_requests SET no_request = :no_request WHERE id = :id");
-        $stmt->execute([
-            ':no_request' => $no_request,
-            ':id' => $id
-        ]);
-        
-        flash_set('No. Request berhasil diperbarui');
-        header('Location: /sicakap-admin/public/?p=request_detail&id=' . $id);
-        exit;
-    } catch (PDOException $e) {
-        error_log('Error updating no_request: ' . $e->getMessage());
-        flash_set('Terjadi kesalahan saat memperbarui No. Request');
-        header('Location: /sicakap-admin/public/?p=request_detail&id=' . $id);
-        exit;
-    }
-}
-
-try {
-    // Get current request
-    $stmt = $pdo->prepare("SELECT * FROM letter_requests WHERE id = :id");
-    $stmt->execute([':id' => $id]);
-    $request = $stmt->fetch();
+    // Update nomor pengajuan di Supabase
+    $update_data = json_encode(['nomor_pengajuan' => $nomor_pengajuan]);
+    $result = supabase_request('PATCH', "pengajuan_dokumen?id=eq.$pengajuan_id", $update_data);
     
-    if (!$request) {
-        flash_set('Permintaan tidak ditemukan');
-        header('Location: ../?p=requests');
-        exit;
-    }
-
-    // Determine new status based on action
-    $new_status = '';
-    $message = '';
-    
-    switch ($action) {
-        case 'approve':
-            if ($request['status'] !== 'pending' && $request['status'] !== 'verifikasi') {
-                flash_set('Permintaan tidak dapat disetujui karena status saat ini: ' . $request['status']);
-                header('Location: ../?p=request_detail&id=' . $id);
-                exit;
-            }
-            $new_status = 'approved';
-            $message = 'Permintaan berhasil disetujui';
-            break;
-            
-        case 'reject':
-            if ($request['status'] === 'finished' || $request['status'] === 'rejected') {
-                flash_set('Permintaan tidak dapat ditolak karena status saat ini: ' . $request['status']);
-                header('Location: ../?p=request_detail&id=' . $id);
-                exit;
-            }
-            $new_status = 'rejected';
-            $message = 'Permintaan berhasil ditolak';
-            break;
-            
-        case 'verifikasi':
-            if ($request['status'] !== 'pending') {
-                flash_set('Hanya permintaan pending yang dapat diverifikasi');
-                header('Location: ../?p=request_detail&id=' . $id);
-                exit;
-            }
-            $new_status = 'verifikasi';
-            $message = 'Permintaan berhasil dipindahkan ke verifikasi';
-            break;
-            
-        case 'process':
-            if ($request['status'] !== 'approved') {
-                flash_set('Hanya permintaan yang disetujui yang dapat diproses');
-                header('Location: ../?p=request_detail&id=' . $id);
-                exit;
-            }
-            $new_status = 'processing';
-            $message = 'Permintaan mulai diproses';
-            break;
-            
-        case 'finish':
-            if ($request['status'] !== 'processing') {
-                flash_set('Hanya permintaan yang sedang diproses yang dapat diselesaikan');
-                header('Location: ../?p=request_detail&id=' . $id);
-                exit;
-            }
-            $new_status = 'finished';
-            $message = 'Permintaan berhasil diselesaikan';
-            break;
-    }
-
-    // Update status
-    $stmt = $pdo->prepare("UPDATE letter_requests SET status = :status WHERE id = :id");
-    $stmt->execute([
-        ':status' => $new_status,
-        ':id' => $id
-    ]);
-    
-    flash_set($message);
-    
-    // Redirect based on source
-    if (isset($_SERVER['HTTP_REFERER']) && strpos($_SERVER['HTTP_REFERER'], 'request_detail') !== false) {
-        header('Location: ../?p=request_detail&id=' . $id);
+    if ($result['code'] === 200 || $result['code'] === 204) {
+        flash_set('No. Pengajuan berhasil diperbarui');
     } else {
-        header('Location: ../?p=requests');
+        flash_set('Gagal memperbarui No. Pengajuan');
     }
-    exit;
     
-} catch (PDOException $e) {
-    error_log('Error updating request status: ' . $e->getMessage());
-    flash_set('Terjadi kesalahan saat mengubah status permintaan');
-    header('Location: ../?p=requests');
+    header('Location: ' . APP_URL . '/?p=request_detail&id=' . $pengajuan_id);
     exit;
 }
+
+// Handle status changes - Insert into riwayat table
+$status_map = [
+    'proses' => 'Diproses',
+    'selesai' => 'Selesai',
+    'tolak' => 'Ditolak'
+];
+
+$new_status = $status_map[$action] ?? '';
+
+if (empty($new_status)) {
+    flash_set('Status tidak valid');
+    header('Location: ' . APP_URL . '/?p=requests');
+    exit;
+}
+
+// Ambil firebase_user_id dari pengajuan_dokumen
+$pengajuan_endpoint = "pengajuan_dokumen?id=eq.$pengajuan_id&select=firebase_user_id,jenis_dokumen,created_at";
+$pengajuan_result = supabase_request('GET', $pengajuan_endpoint);
+
+if ($pengajuan_result['code'] !== 200 || empty($pengajuan_result['data'])) {
+    flash_set('Pengajuan tidak ditemukan');
+    header('Location: ' . APP_URL . '/?p=requests');
+    exit;
+}
+
+$pengajuan = $pengajuan_result['data'][0];
+$firebase_user_id = $pengajuan['firebase_user_id'] ?? '';
+$jenis_dokumen = $pengajuan['jenis_dokumen'] ?? '';
+$tanggal_pengajuan = $pengajuan['created_at'] ?? '';
+
+if (empty($firebase_user_id)) {
+    flash_set('Firebase User ID tidak ditemukan');
+    header('Location: ' . APP_URL . '/?p=requests');
+    exit;
+}
+
+// Insert riwayat baru dengan semua field yang diperlukan
+$riwayat_data = json_encode([
+    'pengajuan_id' => $pengajuan_id,
+    'status' => $new_status,
+    'firebase_user_id' => $firebase_user_id,
+    'jenis_pengajuan' => $jenis_dokumen,
+    'tanggal_pengajuan' => $tanggal_pengajuan
+]);
+
+$result = supabase_request('POST', 'riwayat', $riwayat_data);
+
+// Selalu tampilkan debug info jika ada error
+if ($result['code'] !== 201 && $result['code'] !== 200) {
+    echo '<pre style="background:#ffe6e6;padding:20px;margin:20px;border:2px solid #ff0000;">';
+    echo "<strong>ERROR: Gagal menyimpan riwayat</strong>\n\n";
+    echo "Action: $action\n";
+    echo "Pengajuan ID: $pengajuan_id\n";
+    echo "New Status: $new_status\n";
+    echo "Data sent: $riwayat_data\n\n";
+    echo "Result Code: " . $result['code'] . "\n";
+    echo "Result Data:\n";
+    print_r($result['data']);
+    echo '</pre>';
+    echo '<a href="' . APP_URL . '/?p=requests">Kembali ke Daftar Pengajuan</a>';
+    exit;
+}
+
+if ($result['code'] === 201 || $result['code'] === 200) {
+    $message_map = [
+        'proses' => 'Pengajuan berhasil diproses',
+        'selesai' => 'Pengajuan berhasil diselesaikan',
+        'tolak' => 'Pengajuan berhasil ditolak'
+    ];
+    flash_set($message_map[$action] ?? 'Status berhasil diperbarui');
+} else {
+    $error_msg = 'Gagal memperbarui status pengajuan';
+    if (!empty($result['data']['message'])) {
+        $error_msg .= ': ' . $result['data']['message'];
+    }
+    flash_set($error_msg);
+}
+
+header('Location: ' . APP_URL . '/?p=requests');
+exit;

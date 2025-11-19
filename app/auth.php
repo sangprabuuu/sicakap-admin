@@ -1,13 +1,26 @@
 <?php
-function login($email, $password) {
-    $pdo = db();
-    $stmt = $pdo->prepare("SELECT * FROM users WHERE email = ?");
-    $stmt->execute([$email]);
-    $user = $stmt->fetch();
-    if ($user && password_verify($password, $user['password'])) {
-        $_SESSION['user'] = ['id' => $user['id'], 'email' => $user['email'], 'name' => $user['name']];
-        return true;
+function login($username, $password) {
+    // Query ke Supabase table user_admin via REST API
+    $endpoint = "user_admin?username=eq.$username";
+    $result = supabase_request('GET', $endpoint);
+    
+    if ($result['code'] === 200 && !empty($result['data'])) {
+        $user = $result['data'][0];
+        
+        // Cek password (plain text untuk sementara)
+        if (isset($user['password']) && $user['password'] === $password) {
+            $_SESSION['user'] = [
+                'id' => $user['id'], 
+                'username' => $user['username'],
+                'name' => $user['username']
+            ];
+            return true;
+        }
     }
+    
+    // Log error untuk debugging
+    error_log("Login failed for user: $username - Response code: " . ($result['code'] ?? 'N/A'));
+    
     return false;
 }
 

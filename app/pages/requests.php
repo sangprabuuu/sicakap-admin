@@ -1,61 +1,77 @@
 <?php
-$pdo = db();
 $user = current_user();
 
-// Pagination
+// Ambil data pengajuan dari Supabase via REST API
+$endpoint = 'pengajuan_dokumen?select=*&order=created_at.desc';
+
+// Search by nama atau NIK
+$search = $_GET['search'] ?? '';
+if ($search) {
+    $endpoint .= "&or=(nama.ilike.*$search*,nik.ilike.*$search*)";
+}
+
+$result = supabase_request('GET', $endpoint);
+
+// Debug - tampilkan response
+if (isset($_GET['debug'])) {
+    echo '<pre style="background:#f5f5f5;padding:20px;margin:20px;border:1px solid #ccc;">';
+    echo "Endpoint: " . $endpoint . "\n\n";
+    echo "Response Code: " . $result['code'] . "\n\n";
+    echo "Response Data:\n";
+    print_r($result);
+    echo '</pre>';
+}
+
+$requests = ($result['code'] === 200 && !empty($result['data'])) ? $result['data'] : [];
+
+// Ambil status dari tabel riwayat untuk setiap pengajuan
+if (!empty($requests)) {
+    foreach ($requests as &$req) {
+        // Query status terbaru dari tabel riwayat berdasarkan pengajuan_id
+        $status_endpoint = "riwayat?select=status&pengajuan_id=eq." . $req['id'] . "&order=created_at.desc&limit=1";
+        $status_result = supabase_request('GET', $status_endpoint);
+        
+        if ($status_result['code'] === 200 && !empty($status_result['data'])) {
+            $req['status'] = $status_result['data'][0]['status'] ?? 'Diajukan';
+        } else {
+            $req['status'] = 'Diajukan';
+        }
+    }
+    unset($req); // break reference
+}
+
+// Hitung status untuk filter SEBELUM filtering
+$all_requests = $requests; // Simpan semua data untuk perhitungan
+$status_counts = [
+    'all' => count($all_requests),
+    'Diajukan' => 0,
+    'Diproses' => 0,
+    'Ditolak' => 0,
+    'Selesai' => 0
+];
+
+foreach ($all_requests as $req) {
+    $status = $req['status'] ?? 'Diajukan';
+    if (isset($status_counts[$status])) {
+        $status_counts[$status]++;
+    }
+}
+
+// Filter status jika ada (filter manual di PHP, bukan di API)
+$status_filter = $_GET['status'] ?? '';
+if ($status_filter) {
+    $requests = array_filter($requests, function($req) use ($status_filter) {
+        return ($req['status'] ?? 'Diajukan') === $status_filter;
+    });
+}
+
+// Pagination manual (karena sudah dapat semua data)
 $page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
 $limit = 20;
-$offset = ($page - 1) * $limit;
-
-// Filter status
-$status_filter = $_GET['status'] ?? '';
-$search = $_GET['search'] ?? '';
-
-$where = [];
-$params = [];
-
-if ($status_filter) {
-    $where[] = "lr.status = :status";
-    $params[':status'] = $status_filter;
-}
-
-if ($search) {
-    $where[] = "(lr.no_request LIKE :search OR lr.resident_nik LIKE :search OR lr.resident_name LIKE :search)";
-    $params[':search'] = "%$search%";
-}
-
-$where_sql = $where ? ' WHERE ' . implode(' AND ', $where) : '';
-
-// Count total
-$count_sql = "SELECT COUNT(*) FROM letter_requests lr" . $where_sql;
-$stmt = $pdo->prepare($count_sql);
-$stmt->execute($params);
-$total = $stmt->fetchColumn();
+$total = count($requests);
 $total_pages = ceil($total / $limit);
-
-// Get requests with template name
-$sql = "SELECT lr.*, lt.name as template_name 
-        FROM letter_requests lr
-        LEFT JOIN letter_templates lt ON lr.template_id = lt.id
-        {$where_sql}
-        ORDER BY lr.requested_at DESC, lr.created_at DESC
-        LIMIT :limit OFFSET :offset";
-
-$stmt = $pdo->prepare($sql);
-foreach ($params as $key => $val) {
-    $stmt->bindValue($key, $val);
-}
-$stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
-$stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
-$stmt->execute();
-$requests = $stmt->fetchAll();
-
-// Get status count for filter badges
-$status_counts = [];
-$status_sql = "SELECT status, COUNT(*) as count FROM letter_requests GROUP BY status";
-foreach ($pdo->query($status_sql) as $row) {
-    $status_counts[$row['status']] = $row['count'];
-}
+$offset = ($page - 1) * $limit;
+$requests = array_slice($requests, $offset, $limit);
 
 $flash = flash_get();
 ?>
@@ -79,34 +95,28 @@ $flash = flash_get();
   </header>
 
   <section class="content">
-    <h1>Permintaan Surat</h1>
+    <h1>Pengajuan Dokumen</h1>
 
-    <?php if ($flash): ?>
+    <?php if ($flash = flash_get()): ?>
     <div class="alert alert-success"><?= h($flash) ?></div>
     <?php endif; ?>
 
     <!-- Status Filter -->
     <div class="status-filter">
-      <a href="?p=requests" class="filter-badge <?= !$status_filter ? 'active' : '' ?>">
-        Semua (<?= array_sum($status_counts) ?>)
+      <a href="?p=requests" class="filter-badge <?= empty($status_filter) ? 'active' : '' ?>">
+        Semua (<?= $status_counts['all'] ?>)
       </a>
-      <a href="?p=requests&status=pending" class="filter-badge badge-pending <?= $status_filter == 'pending' ? 'active' : '' ?>">
-        Pending (<?= $status_counts['pending'] ?? 0 ?>)
+      <a href="?p=requests&status=Diajukan" class="filter-badge <?= $status_filter === 'Diajukan' ? 'active' : '' ?>">
+        Diajukan (<?= $status_counts['Diajukan'] ?>)
       </a>
-      <a href="?p=requests&status=verifikasi" class="filter-badge badge-verifikasi <?= $status_filter == 'verifikasi' ? 'active' : '' ?>">
-        Verifikasi (<?= $status_counts['verifikasi'] ?? 0 ?>)
+      <a href="?p=requests&status=Diproses" class="filter-badge <?= $status_filter === 'Diproses' ? 'active' : '' ?>">
+        Diproses (<?= $status_counts['Diproses'] ?>)
       </a>
-      <a href="?p=requests&status=approved" class="filter-badge badge-approved <?= $status_filter == 'approved' ? 'active' : '' ?>">
-        Disetujui (<?= $status_counts['approved'] ?? 0 ?>)
+      <a href="?p=requests&status=Ditolak" class="filter-badge <?= $status_filter === 'Ditolak' ? 'active' : '' ?>">
+        Ditolak (<?= $status_counts['Ditolak'] ?>)
       </a>
-      <a href="?p=requests&status=processing" class="filter-badge badge-processing <?= $status_filter == 'processing' ? 'active' : '' ?>">
-        Proses (<?= $status_counts['processing'] ?? 0 ?>)
-      </a>
-      <a href="?p=requests&status=finished" class="filter-badge badge-finished <?= $status_filter == 'finished' ? 'active' : '' ?>">
-        Selesai (<?= $status_counts['finished'] ?? 0 ?>)
-      </a>
-      <a href="?p=requests&status=rejected" class="filter-badge badge-rejected <?= $status_filter == 'rejected' ? 'active' : '' ?>">
-        Ditolak (<?= $status_counts['rejected'] ?? 0 ?>)
+      <a href="?p=requests&status=Selesai" class="filter-badge <?= $status_filter === 'Selesai' ? 'active' : '' ?>">
+        Selesai (<?= $status_counts['Selesai'] ?>)
       </a>
     </div>
 
@@ -121,7 +131,7 @@ $flash = flash_get();
           <?php if ($status_filter): ?>
           <input type="hidden" name="status" value="<?= h($status_filter) ?>">
           <?php endif; ?>
-          <input type="text" name="search" placeholder="Cari No. Request, NIK, atau Nama..." value="<?= h($search) ?>" class="search-input">
+          <input type="text" name="search" placeholder="Cari NIK, atau Nama..." value="<?= h($search) ?>" class="search-input">
           <button type="submit" class="btn btn-secondary">Cari</button>
           <?php if ($search): ?>
             <a href="?p=requests<?= $status_filter ? '&status=' . h($status_filter) : '' ?>" class="btn btn-light">Reset</a>
@@ -136,11 +146,12 @@ $flash = flash_get();
         <thead>
           <tr>
             <th>No</th>
-            <th>No. Request</th>
+            <th>No. Surat</th>
             <th>Tanggal</th>
             <th>NIK</th>
             <th>Nama Pemohon</th>
-            <th>Jenis Surat</th>
+            <th>Jenis Dokumen</th>
+            <th>Alamat</th>
             <th>Status</th>
             <th>Aksi</th>
           </tr>
@@ -148,63 +159,35 @@ $flash = flash_get();
         <tbody>
           <?php if (empty($requests)): ?>
           <tr>
-            <td colspan="8" class="text-center">Tidak ada permintaan surat.</td>
+            <td colspan="9" class="text-center">Tidak ada pengajuan dokumen.</td>
           </tr>
           <?php else: ?>
             <?php foreach ($requests as $i => $req): ?>
             <tr>
               <td><?= $offset + $i + 1 ?></td>
-              <td><strong><?= h($req['no_request'] ?? '-') ?></strong></td>
+              <td><strong><?= h($req['nomor_pengajuan'] ?? '-') ?></strong></td>
+              <td><?= date('d/m/Y', strtotime($req['created_at'])) ?></td>
+              <td><?= h($req['nik']) ?></td>
+              <td><?= h($req['nama']) ?></td>
+              <td><?= h($req['jenis_dokumen']) ?></td>
+              <td><?= h($req['alamat']) ?></td>
               <td>
-                <?php
-                if ($req['requested_at']) {
-                    echo date('d/m/Y H:i', strtotime($req['requested_at']));
-                } else {
-                    echo date('d/m/Y', strtotime($req['created_at']));
-                }
+                <?php 
+                $status = $req['status'] ?? 'Diajukan';
+                $badge_class = match($status) {
+                  'Selesai' => 'badge-success',
+                  'Diproses' => 'badge-warning',
+                  'Ditolak' => 'badge-danger',
+                  'Diajukan' => 'badge-secondary',
+                  default => 'badge-secondary'
+                };
                 ?>
+                <span class="badge <?= $badge_class ?>"><?= h($status) ?></span>
               </td>
-              <td><?= h($req['resident_nik']) ?></td>
-              <td><?= h($req['resident_name']) ?></td>
-              <td><?= h($req['template_name'] ?? 'Template #' . $req['template_id']) ?></td>
               <td>
-                <?php
-                $status_labels = [
-                    'pending' => 'Pending',
-                    'verifikasi' => 'Verifikasi',
-                    'approved' => 'Disetujui',
-                    'rejected' => 'Ditolak',
-                    'processing' => 'Diproses',
-                    'finished' => 'Selesai'
-                ];
-                $status = $req['status'];
-                $label = $status_labels[$status] ?? $status;
-                ?>
-                <span class="badge badge-<?= h($status) ?>"><?= h($label) ?></span>
-              </td>
-              <td class="actions">
-                <a href="?p=request_detail&id=<?= $req['id'] ?>" class="btn btn-sm btn-primary" title="Detail">
-                  <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                    <path d="M8 2C4.5 2 1.5 4.5 0 8c1.5 3.5 4.5 6 8 6s6.5-2.5 8-6c-1.5-3.5-4.5-6-8-6zm0 10c-2.2 0-4-1.8-4-4s1.8-4 4-4 4 1.8 4 4-1.8 4-4 4zm0-6.5c-1.4 0-2.5 1.1-2.5 2.5s1.1 2.5 2.5 2.5 2.5-1.1 2.5-2.5-1.1-2.5-2.5-2.5z"/>
-                  </svg>
-                </a>
-                <?php if ($status === 'pending' || $status === 'verifikasi'): ?>
-                <a href="?p=request_approve&id=<?= $req['id'] ?>&action=approve" 
-                   class="btn btn-sm btn-success" 
-                   onclick="return confirm('Setujui permintaan ini?')" 
-                   title="Setujui">
-                  <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                    <path d="M13.5 2L6 9.5 2.5 6 1 7.5l5 5 9-9z"/>
-                  </svg>
-                </a>
-                <a href="?p=request_approve&id=<?= $req['id'] ?>&action=reject" 
-                   class="btn btn-sm btn-danger" 
-                   onclick="return confirm('Tolak permintaan ini?')" 
-                   title="Tolak">
-                  <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                    <path d="M3.5 2L2 3.5 6.5 8 2 12.5 3.5 14 8 9.5 12.5 14 14 12.5 9.5 8 14 3.5 12.5 2 8 6.5z"/>
-                  </svg>
-                </a>
+                <a href="?p=request_detail&id=<?= h($req['id']) ?>" class="btn btn-sm btn-primary">Detail</a>
+                <?php if (!empty($req['file_url'])): ?>
+                  <a href="<?= h($req['file_url']) ?>" target="_blank" class="btn btn-sm btn-secondary">Download</a>
                 <?php endif; ?>
               </td>
             </tr>

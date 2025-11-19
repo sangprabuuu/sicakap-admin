@@ -1,34 +1,44 @@
 <?php
-$pdo = db();
 $user = current_user();
 
-$id = isset($_GET['id']) ? intval($_GET['id']) : 0;
+$id = isset($_GET['id']) ? $_GET['id'] : '';
 
-if ($id <= 0) {
+if (empty($id)) {
     flash_set('ID permintaan tidak valid');
-    header('Location: ?p=requests');
+    header('Location: ' . APP_URL . '/?p=requests');
     exit;
 }
 
-// Get request detail
-$sql = "SELECT lr.*, lt.name as template_name, lt.code as template_code,
-               r.name as resident_full_name, r.alamat, r.rt, r.rw, r.desa,
-               r.tempat_lahir, r.tanggal_lahir, r.jenis_kelamin, r.agama,
-               r.pekerjaan, r.status_perkawinan, r.kewarganegaraan
-        FROM letter_requests lr
-        LEFT JOIN letter_templates lt ON lr.template_id = lt.id
-        LEFT JOIN residents r ON lr.resident_id = r.id
-        WHERE lr.id = :id";
+// Get request detail dari Supabase
+$endpoint = "pengajuan_dokumen?id=eq.$id&select=*";
+$result = supabase_request('GET', $endpoint);
 
-$stmt = $pdo->prepare($sql);
-$stmt->execute([':id' => $id]);
-$request = $stmt->fetch();
-
-if (!$request) {
+if ($result['code'] !== 200 || empty($result['data'])) {
     flash_set('Permintaan tidak ditemukan');
-    header('Location: ?p=requests');
+    header('Location: ' . APP_URL . '/?p=requests');
     exit;
 }
+
+$request = $result['data'][0];
+
+// Ambil status dari tabel riwayat
+$status_endpoint = "riwayat?select=*&pengajuan_id=eq.$id&order=created_at.desc";
+$status_result = supabase_request('GET', $status_endpoint);
+$riwayat_list = ($status_result['code'] === 200 && !empty($status_result['data'])) ? $status_result['data'] : [];
+
+// Debug - tampilkan jika parameter debug ada
+if (isset($_GET['debug'])) {
+    echo '<pre style="background:#f5f5f5;padding:20px;margin:20px;border:1px solid #ccc;">';
+    echo "Pengajuan ID: $id\n\n";
+    echo "Status Endpoint: $status_endpoint\n\n";
+    echo "Status Result Code: " . $status_result['code'] . "\n\n";
+    echo "Riwayat Data:\n";
+    print_r($riwayat_list);
+    echo '</pre>';
+}
+
+// Status terkini
+$current_status = !empty($riwayat_list) ? $riwayat_list[0]['status'] : 'Diajukan';
 
 $flash = flash_get();
 ?>
@@ -67,30 +77,27 @@ $flash = flash_get();
         <div class="detail-header">
           <h3>Informasi Permintaan</h3>
           <?php
-          $status_labels = [
-              'pending' => 'Pending',
-              'verifikasi' => 'Verifikasi',
-              'approved' => 'Disetujui',
-              'rejected' => 'Ditolak',
-              'processing' => 'Diproses',
-              'finished' => 'Selesai'
-          ];
-          $status = $request['status'];
-          $label = $status_labels[$status] ?? $status;
+          $badge_class = match($current_status) {
+              'Selesai' => 'badge-success',
+              'Diproses' => 'badge-warning',
+              'Ditolak' => 'badge-danger',
+              'Diajukan' => 'badge-secondary',
+              default => 'badge-secondary'
+          };
           ?>
-          <span class="badge badge-<?= h($status) ?> badge-large"><?= h($label) ?></span>
+          <span class="badge <?= $badge_class ?> badge-large"><?= h($current_status) ?></span>
         </div>
         
         <table class="detail-table">
           <tr>
-            <td class="label">No. Request</td>
+            <td class="label">No. Pengajuan</td>
             <td>
               <form method="post" action="?p=request_approve" style="margin: 0;">
-                <input type="hidden" name="id" value="<?= $id ?>">
-                <input type="hidden" name="action" value="update_no_request">
+                <input type="hidden" name="pengajuan_id" value="<?= h($id) ?>">
+                <input type="hidden" name="action" value="update_nomor">
                 <div style="display: flex; gap: 10px; align-items: center;">
-                  <input type="text" name="no_request" value="<?= h($request['no_request'] ?? '') ?>" 
-                         placeholder="Masukkan No. Request" required
+                  <input type="text" name="nomor_pengajuan" value="<?= h($request['nomor_pengajuan'] ?? '') ?>" 
+                         placeholder="Masukkan No. Pengajuan" 
                          style="width: 300px; padding: 10px; border: 2px solid #ddd; border-radius: 4px; font-size: 14px; background: white; color: #333; font-weight: 500;">
                   <button type="submit" class="btn btn-sm btn-success">Simpan</button>
                 </div>
@@ -98,37 +105,24 @@ $flash = flash_get();
             </td>
           </tr>
           <tr>
-            <td class="label">Tanggal Permintaan</td>
+            <td class="label">Tanggal Pengajuan</td>
+            <td><?= date('d F Y, H:i', strtotime($request['created_at'])) ?></td>
+          </tr>
+          <tr>
+            <td class="label">Jenis Dokumen</td>
+            <td><strong><?= h($request['jenis_dokumen']) ?></strong></td>
+          </tr>
+          <tr>
+            <td class="label">Tujuan Pembuatan</td>
+            <td><?= h($request['tujuan_pembuatan'] ?? '-') ?></td>
+          </tr>
+          <?php if (!empty($request['file_url'])): ?>
+          <tr>
+            <td class="label">File Lampiran</td>
             <td>
-              <?php
-              if ($request['requested_at']) {
-                  echo date('d F Y, H:i', strtotime($request['requested_at']));
-              } else {
-                  echo date('d F Y', strtotime($request['created_at']));
-              }
-              ?>
-            </td>
-          </tr>
-          <tr>
-            <td class="label">Jenis Surat</td>
-            <td><strong><?= h($request['template_name'] ?? 'Template #' . $request['template_id']) ?></strong></td>
-          </tr>
-          <?php if ($request['notes']): ?>
-          <tr>
-            <td class="label">Catatan</td>
-            <td><?= nl2br(h($request['notes'])) ?></td>
-          </tr>
-          <?php endif; ?>
-          <?php if ($request['attachments']): ?>
-          <tr>
-            <td class="label">Lampiran</td>
-            <td>
-              <?php
-              $attachments = explode(',', $request['attachments']);
-              foreach ($attachments as $file) {
-                  echo '<a href="' . h(rtrim(APP_URL, '/')) . '/app/uploads/' . h(trim($file)) . '" target="_blank" class="attachment-link">' . h(trim($file)) . '</a><br>';
-              }
-              ?>
+              <a href="<?= h($request['file_url']) ?>" target="_blank" class="btn btn-sm btn-secondary">
+                📄 <?= h($request['file_name'] ?? 'Download File') ?>
+              </a>
             </td>
           </tr>
           <?php endif; ?>
@@ -144,105 +138,90 @@ $flash = flash_get();
         <table class="detail-table">
           <tr>
             <td class="label">NIK</td>
-            <td><strong><?= h($request['resident_nik']) ?></strong></td>
+            <td><strong><?= h($request['nik']) ?></strong></td>
           </tr>
           <tr>
             <td class="label">Nama Lengkap</td>
-            <td><strong><?= h($request['resident_name']) ?></strong></td>
-          </tr>
-          <?php if ($request['resident_full_name']): ?>
-          <tr>
-            <td class="label">Tempat/Tanggal Lahir</td>
-            <td>
-              <?php
-              $ttl = [];
-              if ($request['tempat_lahir']) $ttl[] = h($request['tempat_lahir']);
-              if ($request['tanggal_lahir']) $ttl[] = date('d-m-Y', strtotime($request['tanggal_lahir']));
-              echo implode(', ', $ttl);
-              ?>
-            </td>
-          </tr>
-          <tr>
-            <td class="label">Jenis Kelamin</td>
-            <td><?= h($request['jenis_kelamin'] ?? '-') ?></td>
-          </tr>
-          <tr>
-            <td class="label">Agama</td>
-            <td><?= h($request['agama'] ?? '-') ?></td>
-          </tr>
-          <tr>
-            <td class="label">Pekerjaan</td>
-            <td><?= h($request['pekerjaan'] ?? '-') ?></td>
-          </tr>
-          <tr>
-            <td class="label">Status Perkawinan</td>
-            <td><?= h($request['status_perkawinan'] ?? '-') ?></td>
+            <td><strong><?= h($request['nama']) ?></strong></td>
           </tr>
           <tr>
             <td class="label">Alamat</td>
-            <td>
-              <?= h($request['alamat'] ?? '-') ?>
-              <?php
-              $rtrw = [];
-              if ($request['rt']) $rtrw[] = 'RT ' . h($request['rt']);
-              if ($request['rw']) $rtrw[] = 'RW ' . h($request['rw']);
-              if ($rtrw) echo '<br>' . implode('/', $rtrw);
-              if ($request['desa']) echo '<br>' . h($request['desa']);
-              ?>
-            </td>
+            <td><?= h($request['alamat']) ?></td>
           </tr>
-          <?php endif; ?>
         </table>
       </div>
 
-      <!-- Actions -->
-      <div class="detail-actions">
-        <?php if ($status === 'pending' || $status === 'verifikasi'): ?>
-        <form method="post" action="?p=request_approve" style="display: inline;">
-          <input type="hidden" name="id" value="<?= $id ?>">
-          <input type="hidden" name="action" value="approve">
-          <button type="submit" class="btn btn-success" onclick="return confirm('Setujui permintaan ini?')">
-            ✓ Setujui Permintaan
-          </button>
-        </form>
+      <!-- Riwayat Status -->
+      <?php if (!empty($riwayat_list)): ?>
+      <div class="detail-card">
+        <div class="detail-header">
+          <h3>Riwayat Status</h3>
+        </div>
         
-        <form method="post" action="?p=request_approve" style="display: inline;">
-          <input type="hidden" name="id" value="<?= $id ?>">
-          <input type="hidden" name="action" value="reject">
-          <button type="submit" class="btn btn-danger" onclick="return confirm('Tolak permintaan ini?')">
-            ✗ Tolak Permintaan
-          </button>
-        </form>
-        <?php endif; ?>
+        <div class="timeline">
+          <?php foreach ($riwayat_list as $riwayat): ?>
+          <div class="timeline-item">
+            <div class="timeline-marker"></div>
+            <div class="timeline-content">
+              <div class="timeline-header">
+                <?php
+                $badge_class = match($riwayat['status']) {
+                    'Selesai' => 'badge-success',
+                    'Diproses' => 'badge-warning',
+                    'Ditolak' => 'badge-danger',
+                    'Diajukan' => 'badge-secondary',
+                    default => 'badge-secondary'
+                };
+                ?>
+                <span class="badge <?= $badge_class ?>"><?= h($riwayat['status']) ?></span>
+                <span class="timeline-date"><?= date('d M Y, H:i', strtotime($riwayat['created_at'])) ?></span>
+              </div>
+            </div>
+          </div>
+          <?php endforeach; ?>
+        </div>
+      </div>
+      <?php endif; ?>
 
-        <?php if ($status === 'approved'): ?>
-        <form method="post" action="?p=request_approve" style="display: inline;">
-          <input type="hidden" name="id" value="<?= $id ?>">
-          <input type="hidden" name="action" value="process">
-          <button type="submit" class="btn btn-primary">
-            → Proses Surat
-          </button>
-        </form>
-        <?php endif; ?>
-
-        <?php if ($status === 'processing'): ?>
-        <a href="?p=generate_pdf&request_id=<?= $id ?>" class="btn btn-primary">
-          📄 Generate PDF
-        </a>
-        <form method="post" action="?p=request_approve" style="display: inline;">
-          <input type="hidden" name="id" value="<?= $id ?>">
-          <input type="hidden" name="action" value="finish">
-          <button type="submit" class="btn btn-success">
-            ✓ Tandai Selesai
-          </button>
-        </form>
-        <?php endif; ?>
-
-        <?php if ($status === 'finished'): ?>
-        <a href="?p=generate_pdf&request_id=<?= $id ?>" class="btn btn-secondary" target="_blank">
-          📄 Lihat PDF
-        </a>
-        <?php endif; ?>
+      <!-- Actions -->
+      <div class="detail-card">
+        <div class="detail-header">
+          <h3>Aksi</h3>
+        </div>
+        
+        <div style="display: flex; gap: 10px; padding: 20px;">
+          <?php if ($current_status === 'Diajukan'): ?>
+            <form method="post" action="?p=request_approve" style="display: inline-block;">
+              <input type="hidden" name="pengajuan_id" value="<?= h($id) ?>">
+              <input type="hidden" name="action" value="proses">
+              <button type="submit" class="btn btn-warning" onclick="return confirm('Proses pengajuan ini?')">
+                🔄 Proses Pengajuan
+              </button>
+            </form>
+          <?php endif; ?>
+          
+          <?php if ($current_status === 'Diproses'): ?>
+            <form method="post" action="?p=request_approve" style="display: inline-block;">
+              <input type="hidden" name="pengajuan_id" value="<?= h($id) ?>">
+              <input type="hidden" name="action" value="selesai">
+              <button type="submit" class="btn btn-success" onclick="return confirm('Tandai pengajuan ini sebagai selesai?')">
+                ✅ Tandai Selesai
+              </button>
+            </form>
+          <?php endif; ?>
+          
+          <?php if ($current_status !== 'Ditolak' && $current_status !== 'Selesai'): ?>
+            <form method="post" action="?p=request_approve" style="display: inline-block;">
+              <input type="hidden" name="pengajuan_id" value="<?= h($id) ?>">
+              <input type="hidden" name="action" value="tolak">
+              <button type="submit" class="btn btn-danger" onclick="return confirm('Tolak pengajuan ini?')">
+                ❌ Tolak Pengajuan
+              </button>
+            </form>
+          <?php endif; ?>
+          
+          <a href="?p=requests" class="btn btn-light">← Kembali</a>
+        </div>
       </div>
     </div>
 

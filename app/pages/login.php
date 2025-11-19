@@ -1,12 +1,12 @@
 <?php
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $email = $_POST['email'] ?? '';
+    $username = $_POST['username'] ?? '';
     $password = $_POST['password'] ?? '';
-    if (login($email, $password)) {
-        header('Location: ?p=dashboard');
+    if (login($username, $password)) {
+        header('Location: ' . APP_URL . '/?p=dashboard');
         exit;
     } else {
-        $error = "Email atau password salah";
+        $error = "Username atau password salah";
     }
 }
 ?>
@@ -22,8 +22,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <h2>Login Admin</h2>
     <?php if(!empty($error)): ?><div class="error"><?=h($error)?></div><?php endif; ?>
     <form method="post" action="?p=login">
-      <label>Email</label>
-      <input type="email" name="email" required>
+      <label>Username</label>
+      <input type="text" name="username" required>
       <label>Password</label>
       <input type="password" name="password" required>
       <button type="submit">Login</button>

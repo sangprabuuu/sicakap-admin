@@ -737,6 +737,26 @@ a:hover {
     color: #065f46;
 }
 
+.badge-success {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.badge-warning {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.badge-danger {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.badge-secondary {
+    background: #e5e7eb;
+    color: #374151;
+}
+
 /* Status Filter Badges */
 .status-filter {
     display: flex;
@@ -1193,6 +1213,77 @@ a:hover {
 
 .btn-success:hover {
     background: #059669;
+}
+
+/* Timeline Styles for Request Detail */
+.timeline {
+    position: relative;
+    padding: 20px 0;
+}
+
+.timeline-item {
+    position: relative;
+    padding-left: 40px;
+    padding-bottom: 30px;
+}
+
+.timeline-item:last-child {
+    padding-bottom: 0;
+}
+
+.timeline-item::before {
+    content: '';
+    position: absolute;
+    left: 11px;
+    top: 25px;
+    bottom: -10px;
+    width: 2px;
+    background: #e5e7eb;
+}
+
+.timeline-item:last-child::before {
+    display: none;
+}
+
+.timeline-marker {
+    position: absolute;
+    left: 0;
+    top: 8px;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #fff;
+    border: 3px solid #17622a;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.timeline-content {
+    background: #f9fafb;
+    padding: 15px;
+    border-radius: 8px;
+    border-left: 3px solid #17622a;
+}
+
+.timeline-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 8px;
+}
+
+.timeline-date {
+    color: #6b7280;
+    font-size: 13px;
+}
+
+.timeline-note {
+    margin-top: 8px;
+    padding: 10px;
+    background: #fff;
+    border-radius: 4px;
+    font-size: 14px;
+    color: #374151;
+    border: 1px solid #e5e7eb;
 }
 
 /* Responsive Report */

@@ -185,9 +185,19 @@ $flash = flash_get();
                 <span class="badge <?= $badge_class ?>"><?= h($status) ?></span>
               </td>
               <td>
-                <a href="?p=request_detail&id=<?= h($req['id']) ?>" class="btn btn-sm btn-primary">Detail</a>
-                <?php if (!empty($req['file_url'])): ?>
-                  <a href="<?= h($req['file_url']) ?>" target="_blank" class="btn btn-sm btn-secondary">Download</a>
+                <a href="?p=request_detail&id=<?= h($req['id']) ?>" class="btn btn-sm btn-primary" title="Detail">
+                  <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492zM5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0z"/>
+                    <path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8zM1.173 8a13.133 13.133 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.133 13.133 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5c-2.12 0-3.879-1.168-5.168-2.457A13.134 13.134 0 0 1 1.172 8z"/>
+                  </svg>
+                </a>
+                <?php if (($req['status'] ?? 'Diajukan') === 'Selesai' && !empty($req['file_url'])): ?>
+                  <a href="<?= h($req['file_url']) ?>" target="_blank" class="btn btn-sm btn-secondary" title="Download">
+                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                      <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
+                      <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
+                    </svg>
+                  </a>
                 <?php endif; ?>
               </td>
             </tr>

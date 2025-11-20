@@ -1,5 +1,4 @@
 <?php
-$pdo = db();
 $user = current_user();
 
 // Get SPPD data if editing
@@ -7,13 +6,13 @@ $id = $_GET['id'] ?? '';
 $sppd = null;
 
 if ($id) {
-    $stmt = $pdo->prepare("SELECT * FROM sppd WHERE id = ?");
-    $stmt->execute([$id]);
-    $sppd = $stmt->fetch();
-    
-    if (!$sppd) {
+    $result = supabase_request('GET', "pengajuan_sppd?id=eq.$id&select=*");
+    if (!empty($result['data'])) {
+        $sppd = $result['data'][0];
+    } else {
         flash_set('Data SPPD tidak ditemukan');
-        redirect('?p=sppd');
+        header('Location: ' . APP_URL . '/?p=sppd');
+        exit;
     }
 }
 
@@ -115,7 +114,7 @@ $flash = flash_get();
         <div class="form-row">
           <div class="form-group">
             <label>Tanggal Pembuatan Surat</label>
-            <input type="date" name="tanggal" value="<?= h($sppd['tanggal'] ?? date('Y-m-d')) ?>" required>
+            <input type="date" name="tanggal_pembuatan" value="<?= h($sppd['tanggal_pembuatan'] ?? date('Y-m-d')) ?>" required>
           </div>
           <div class="form-group"></div>
           <div class="form-group"></div>
@@ -123,12 +122,12 @@ $flash = flash_get();
 
         <div class="form-row">
           <div class="form-group">
-            <label>Nomor</label>
-            <input type="text" name="nomor" placeholder="Nomor" value="<?= h($sppd['nomor'] ?? '') ?>" required>
+            <label>Nomor SPPD</label>
+            <input type="text" name="nomor_sppd" placeholder="Contoh: 001/SPPD/2025" value="<?= h($sppd['nomor_sppd'] ?? '') ?>" required>
           </div>
           <div class="form-group">
-            <label>Nama</label>
-            <input type="text" name="nama" placeholder="Nama" value="<?= h($sppd['nama'] ?? '') ?>" required>
+            <label>Nama Pegawai</label>
+            <input type="text" name="nama_pegawai" placeholder="Nama Pegawai" value="<?= h($sppd['nama_pegawai'] ?? '') ?>" required>
           </div>
           <div class="form-group">
             <label>NIP</label>
@@ -142,25 +141,25 @@ $flash = flash_get();
             <input type="text" name="jabatan" placeholder="Jabatan" value="<?= h($sppd['jabatan'] ?? '') ?>" required>
           </div>
           <div class="form-group">
-            <label>Maksud</label>
-            <input type="text" name="maksud" placeholder="Maksud" value="<?= h($sppd['maksud'] ?? '') ?>" required>
+            <label>Maksud Perjalanan</label>
+            <input type="text" name="maksud_perjalanan" placeholder="Maksud Perjalanan" value="<?= h($sppd['maksud_perjalanan'] ?? '') ?>" required>
           </div>
           <div class="form-group">
-            <label>Tujuan</label>
-            <input type="text" name="tempat_tujuan" placeholder="Tujuan" value="<?= h($sppd['tempat_tujuan'] ?? '') ?>" required>
+            <label>Tempat Tujuan</label>
+            <input type="text" name="tempat_tujuan" placeholder="Tempat Tujuan" value="<?= h($sppd['tempat_tujuan'] ?? '') ?>" required>
           </div>
         </div>
 
         <div class="form-group">
-          <label>Durasi</label>
+          <label>Jenis Durasi</label>
           <div class="radio-group">
             <label>
-              <input type="radio" name="durasi" value="1_hari" <?= ($sppd['durasi'] ?? '') == '1_hari' ? 'checked' : '' ?> required>
-              1 hari
+              <input type="radio" name="jenis_durasi" value="harian" <?= ($sppd['jenis_durasi'] ?? '') == 'harian' ? 'checked' : '' ?> required>
+              Harian
             </label>
             <label>
-              <input type="radio" name="durasi" value="lebih_dari" <?= ($sppd['durasi'] ?? '') == 'lebih_dari' ? 'checked' : '' ?>>
-              Lebih dari
+              <input type="radio" name="jenis_durasi" value="lebih dari 1 hari" <?= ($sppd['jenis_durasi'] ?? '') == 'lebih dari 1 hari' ? 'checked' : '' ?>>
+              Lebih dari 1 hari
             </label>
           </div>
         </div>

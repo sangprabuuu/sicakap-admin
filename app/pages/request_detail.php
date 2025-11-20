@@ -49,6 +49,19 @@ $flash = flash_get();
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Detail Permintaan - SiCakap</title>
   <link rel="stylesheet" href="<?= h(rtrim(APP_URL, '/')) ?>/assets/css/style.css">
+  <script>
+    function cetakDanSelesai(id) {
+      // Buka tab baru untuk print surat
+      window.open('?p=print_surat&id=' + id, '_blank');
+      
+      // Tunggu 2 detik lalu submit form selesai
+      setTimeout(function() {
+        if (confirm('Apakah dokumen sudah dicetak? Tandai pengajuan sebagai selesai?')) {
+          document.getElementById('formSelesai').submit();
+        }
+      }, 2000);
+    }
+  </script>
 </head>
 <body>
 <?php include __DIR__ . '/_sidebar.php'; ?>
@@ -201,10 +214,10 @@ $flash = flash_get();
           <?php endif; ?>
           
           <?php if ($current_status === 'Diproses'): ?>
-            <form method="post" action="?p=request_approve" style="display: inline-block;">
+            <form method="post" action="?p=request_approve" style="display: inline-block;" id="formSelesai">
               <input type="hidden" name="pengajuan_id" value="<?= h($id) ?>">
               <input type="hidden" name="action" value="selesai">
-              <button type="submit" class="btn btn-success" onclick="return confirm('Tandai pengajuan ini sebagai selesai?')">
+              <button type="button" class="btn btn-success" onclick="cetakDanSelesai('<?= h($id) ?>')">
                 ✅ Tandai Selesai
               </button>
             </form>

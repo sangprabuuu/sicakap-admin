@@ -1,39 +1,37 @@
 <?php
-$pdo = db();
+if (!is_logged_in()) {
+    header('Location: ' . APP_URL . '/?p=login');
+    exit;
+}
+
 $user = current_user();
 
-// Ambil data undangan dengan pagination
+// Ambil data undangan dari Supabase
 $page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
 $limit = 20;
 $offset = ($page - 1) * $limit;
 
 // Search functionality
 $search = $_GET['search'] ?? '';
-$where = '';
-$params = [];
+
+// Build query endpoint
+$endpoint = 'surat_undangan?select=*&order=tanggal_surat.desc';
 
 if ($search) {
-    $where = " WHERE nomor_surat LIKE :search OR perihal LIKE :search OR nama LIKE :search";
-    $params[':search'] = "%$search%";
+    // Filter by nomor_surat, perihal, or nama
+    $endpoint .= "&or=(nomor_surat.ilike.*$search*,perihal.ilike.*$search*,nama.ilike.*$search*)";
 }
 
-// Count total
-$count_sql = "SELECT COUNT(*) FROM surat_undangan" . $where;
-$stmt = $pdo->prepare($count_sql);
-$stmt->execute($params);
-$total = $stmt->fetchColumn();
+// Get all data first (Supabase REST API handles filtering)
+$result = supabase_request('GET', $endpoint);
+$all_undangan = $result['data'] ?? [];
+
+// Calculate pagination
+$total = count($all_undangan);
 $total_pages = ceil($total / $limit);
 
-// Get undangan
-$sql = "SELECT * FROM surat_undangan" . $where . " ORDER BY tanggal_surat DESC LIMIT :limit OFFSET :offset";
-$stmt = $pdo->prepare($sql);
-foreach ($params as $key => $val) {
-    $stmt->bindValue($key, $val);
-}
-$stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
-$stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
-$stmt->execute();
-$undangan_list = $stmt->fetchAll();
+// Slice for current page
+$undangan_list = array_slice($all_undangan, $offset, $limit);
 
 $flash = flash_get();
 ?>
@@ -57,7 +55,7 @@ $flash = flash_get();
   </header>
 
   <section class="content">
-    <h1>Data Undangan</h1>
+    <h1>Data Surat Undangan</h1>
 
     <?php if ($flash): ?>
     <div class="alert alert-success"><?= h($flash) ?></div>

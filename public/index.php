@@ -35,17 +35,17 @@ switch ($page) {
     case 'dashboard':
         require __DIR__ . '/../app/pages/dashboard.php';
         break;
-    case 'residents':
-        require __DIR__ . '/../app/pages/residents.php';
-        break;
-    case 'resident_form':
-        require __DIR__ . '/../app/pages/resident_form.php';
-        break;
     case 'requests':
         require __DIR__ . '/../app/pages/requests.php';
         break;
     case 'request_detail':
         require __DIR__ . '/../app/pages/request_detail.php';
+        break;
+    case 'print_surat':
+        require __DIR__ . '/../app/pages/print_surat.php';
+        break;
+    case 'request_approve':
+        require __DIR__ . '/../app/actions/request_approve.php';
         break;
     case 'issued':
         require __DIR__ . '/../app/pages/issued.php';

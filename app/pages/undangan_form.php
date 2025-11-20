@@ -1,5 +1,9 @@
 <?php
-$pdo = db();
+if (!is_logged_in()) {
+    header('Location: ' . APP_URL . '/?p=login');
+    exit;
+}
+
 $user = current_user();
 
 // Get undangan data if editing
@@ -7,13 +11,12 @@ $id = $_GET['id'] ?? '';
 $undangan = null;
 
 if ($id) {
-    $stmt = $pdo->prepare("SELECT * FROM surat_undangan WHERE id = ?");
-    $stmt->execute([$id]);
-    $undangan = $stmt->fetch();
+    $result = supabase_request('GET', "surat_undangan?id=eq.$id&select=*");
+    $undangan = $result['data'][0] ?? null;
     
     if (!$undangan) {
         flash_set('Data undangan tidak ditemukan');
-        header('Location: ?p=undangan');
+        header('Location: ' . APP_URL . '/?p=undangan');
         exit;
     }
 }

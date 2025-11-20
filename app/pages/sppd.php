@@ -1,39 +1,47 @@
 <?php
-$pdo = db();
 $user = current_user();
 
-// Ambil data SPPD dengan pagination
+// Ambil data SPPD dari Supabase
 $page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
 $limit = 20;
 $offset = ($page - 1) * $limit;
 
 // Search functionality
 $search = $_GET['search'] ?? '';
-$where = '';
-$params = [];
+
+// Build query endpoint
+$endpoint = 'pengajuan_sppd?select=*&order=created_at.desc';
 
 if ($search) {
-    $where = " WHERE nomor LIKE :search OR nama LIKE :search OR tempat_tujuan LIKE :search";
-    $params[':search'] = "%$search%";
+    // Filter by nomor_sppd, nama_pegawai, or tempat_tujuan
+    $endpoint .= "&or=(nomor_sppd.ilike.*$search*,nama_pegawai.ilike.*$search*,tempat_tujuan.ilike.*$search*)";
 }
 
-// Count total
-$count_sql = "SELECT COUNT(*) FROM sppd" . $where;
-$stmt = $pdo->prepare($count_sql);
-$stmt->execute($params);
-$total = $stmt->fetchColumn();
+// Get all data first (Supabase REST API handles filtering)
+$result = supabase_request('GET', $endpoint);
+
+// Debug info (tampilkan jika ada parameter ?debug=1)
+$debug_mode = isset($_GET['debug']) && $_GET['debug'] == '1';
+if ($debug_mode) {
+    echo "<div style='background: #f0f0f0; padding: 15px; margin: 20px; border: 2px solid #333;'>";
+    echo "<h3>🔍 Debug Info</h3>";
+    echo "<p><strong>Endpoint:</strong> $endpoint</p>";
+    echo "<p><strong>HTTP Code:</strong> " . ($result['code'] ?? 'N/A') . "</p>";
+    echo "<p><strong>Data Count:</strong> " . (isset($result['data']) ? count($result['data']) : 0) . "</p>";
+    echo "<pre>";
+    print_r($result);
+    echo "</pre>";
+    echo "</div>";
+}
+
+$all_sppd = $result['data'] ?? [];
+
+// Calculate pagination
+$total = count($all_sppd);
 $total_pages = ceil($total / $limit);
 
-// Get SPPD
-$sql = "SELECT * FROM sppd" . $where . " ORDER BY tanggal DESC LIMIT :limit OFFSET :offset";
-$stmt = $pdo->prepare($sql);
-foreach ($params as $key => $val) {
-    $stmt->bindValue($key, $val);
-}
-$stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
-$stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
-$stmt->execute();
-$sppd_list = $stmt->fetchAll();
+// Slice for current page
+$sppd_list = array_slice($all_sppd, $offset, $limit);
 
 $flash = flash_get();
 ?>
@@ -57,7 +65,7 @@ $flash = flash_get();
   </header>
 
   <section class="content">
-    <h1>Data SPPD</h1>
+    <h1>Data Surat SPPD</h1>
 
     <?php if ($flash): ?>
     <div class="alert alert-success"><?= h($flash) ?></div>
@@ -84,7 +92,7 @@ $flash = flash_get();
         <thead>
           <tr>
             <th>No.</th>
-            <th>Nomor</th>
+            <th>Nomor Surat</th>
             <th>Tanggal</th>
             <th>NIP</th>
             <th>Nama</th>
@@ -101,11 +109,11 @@ $flash = flash_get();
           <?php foreach ($sppd_list as $i => $item): ?>
           <tr>
             <td><?= $offset + $i + 1 ?></td>
-            <td><?= h($item['nomor']) ?></td>
-            <td><?= h(date('d F Y', strtotime($item['tanggal']))) ?></td>
-            <td><?= h($item['nip']) ?></td>
-            <td><?= h($item['nama']) ?></td>
-            <td><?= h($item['tempat_tujuan']) ?></td>
+            <td><?= h($item['nomor_sppd'] ?? '-') ?></td>
+            <td><?= h($item['tanggal_pembuatan'] ? date('d F Y', strtotime($item['tanggal_pembuatan'])) : '-') ?></td>
+            <td><?= h($item['nip'] ?? '-') ?></td>
+            <td><?= h($item['nama_pegawai'] ?? '-') ?></td>
+            <td><?= h($item['tempat_tujuan'] ?? '-') ?></td>
             <td>
               <a href="?p=sppd_print&id=<?= h($item['id']) ?>" class="btn btn-sm btn-success" target="_blank" title="Print Surat">
                 <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">

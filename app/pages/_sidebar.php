@@ -28,7 +28,7 @@ $base = rtrim(APP_URL, '/');
       </ul>
     </li>
     <li><a href="?p=requests">Pengajuan Dokumen</a></li>
-    <li><a href="?p=issued">Surat Selesai</a></li>
+    <li><a href="?p=issued">Dokumen Selesai</a></li>
     <li><a href="?p=reports">Laporan</a></li>
     <li><a href="?p=logout" class="logout-link">Log Out</a></li>
   </ul>

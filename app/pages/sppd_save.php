@@ -1,74 +1,75 @@
 <?php
-$pdo = db();
 $user = current_user();
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    header('Location: ?p=sppd');
+    header('Location: ' . APP_URL . '/?p=sppd');
     exit;
 }
 
 $id = $_POST['id'] ?? '';
-$nomor = trim($_POST['nomor'] ?? '');
-$tanggal = $_POST['tanggal'] ?? '';
-$nama = trim($_POST['nama'] ?? '');
+$tanggal_pembuatan = $_POST['tanggal_pembuatan'] ?? '';
+$nomor_sppd = trim($_POST['nomor_sppd'] ?? '');
+$nama_pegawai = trim($_POST['nama_pegawai'] ?? '');
 $nip = trim($_POST['nip'] ?? '');
 $jabatan = trim($_POST['jabatan'] ?? '');
-$maksud = trim($_POST['maksud'] ?? '');
+$maksud_perjalanan = trim($_POST['maksud_perjalanan'] ?? '');
 $tempat_tujuan = trim($_POST['tempat_tujuan'] ?? '');
-$durasi = $_POST['durasi'] ?? '';
+$jenis_durasi = $_POST['jenis_durasi'] ?? '';
 $tanggal_mulai = $_POST['tanggal_mulai'] ?? '';
 $tanggal_selesai = $_POST['tanggal_selesai'] ?? '';
 
 // Validasi
-if (!$nomor || !$tanggal || !$nama || !$nip || !$jabatan || !$maksud || !$tempat_tujuan || !$durasi || !$tanggal_mulai || !$tanggal_selesai) {
+if (!$tanggal_pembuatan || !$nomor_sppd || !$nama_pegawai || !$nip || !$jabatan || !$maksud_perjalanan || !$tempat_tujuan || !$jenis_durasi || !$tanggal_mulai || !$tanggal_selesai) {
     flash_set('Semua field harus diisi');
-    header('Location: ' . ($id ? "?p=sppd_form&id=$id" : '?p=sppd_form'));
+    header('Location: ' . APP_URL . '/' . ($id ? "?p=sppd_form&id=$id" : '?p=sppd_form'));
     exit;
 }
 
-try {
-    if ($id) {
-        // Update
-        $stmt = $pdo->prepare("
-            UPDATE sppd SET
-                nomor = ?,
-                tanggal = ?,
-                nama = ?,
-                nip = ?,
-                jabatan = ?,
-                maksud = ?,
-                tempat_tujuan = ?,
-                durasi = ?,
-                tanggal_mulai = ?,
-                tanggal_selesai = ?,
-                updated_at = NOW()
-            WHERE id = ?
-        ");
-        $stmt->execute([
-            $nomor, $tanggal, $nama, $nip, $jabatan, $maksud, 
-            $tempat_tujuan, $durasi, $tanggal_mulai, $tanggal_selesai, $id
-        ]);
+if ($id) {
+    // Update
+    $data = json_encode([
+        'tanggal_pembuatan' => $tanggal_pembuatan,
+        'nomor_sppd' => $nomor_sppd,
+        'nama_pegawai' => $nama_pegawai,
+        'nip' => $nip,
+        'jabatan' => $jabatan,
+        'maksud_perjalanan' => $maksud_perjalanan,
+        'tempat_tujuan' => $tempat_tujuan,
+        'jenis_durasi' => $jenis_durasi,
+        'tanggal_mulai' => $tanggal_mulai,
+        'tanggal_selesai' => $tanggal_selesai
+    ]);
+    
+    $result = supabase_request('PATCH', "pengajuan_sppd?id=eq.$id", $data);
+    
+    if ($result['code'] === 200) {
         flash_set('Data SPPD berhasil diupdate');
     } else {
-        // Insert
-        $stmt = $pdo->prepare("
-            INSERT INTO sppd (
-                nomor, tanggal, nama, nip, jabatan, maksud, 
-                tempat_tujuan, durasi, tanggal_mulai, tanggal_selesai,
-                created_at, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
-        ");
-        $stmt->execute([
-            $nomor, $tanggal, $nama, $nip, $jabatan, $maksud,
-            $tempat_tujuan, $durasi, $tanggal_mulai, $tanggal_selesai
-        ]);
-        flash_set('Data SPPD berhasil ditambahkan');
+        flash_set('Error update: ' . json_encode($result));
     }
+} else {
+    // Insert
+    $data = json_encode([
+        'tanggal_pembuatan' => $tanggal_pembuatan,
+        'nomor_sppd' => $nomor_sppd,
+        'nama_pegawai' => $nama_pegawai,
+        'nip' => $nip,
+        'jabatan' => $jabatan,
+        'maksud_perjalanan' => $maksud_perjalanan,
+        'tempat_tujuan' => $tempat_tujuan,
+        'jenis_durasi' => $jenis_durasi,
+        'tanggal_mulai' => $tanggal_mulai,
+        'tanggal_selesai' => $tanggal_selesai
+    ]);
     
-    header('Location: ?p=sppd');
-    exit;
-} catch (Exception $e) {
-    flash_set('Error: ' . $e->getMessage());
-    header('Location: ' . ($id ? "?p=sppd_form&id=$id" : '?p=sppd_form'));
-    exit;
+    $result = supabase_request('POST', 'pengajuan_sppd', $data);
+    
+    if ($result['code'] === 201) {
+        flash_set('Data SPPD berhasil ditambahkan');
+    } else {
+        flash_set('Error insert: ' . json_encode($result));
+    }
 }
+
+header('Location: ' . APP_URL . '/?p=sppd');
+exit;

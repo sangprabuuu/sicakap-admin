@@ -1,23 +1,33 @@
 <?php
-$pdo = db();
+// Cek login
+if (!is_logged_in()) {
+    header('Location: ' . APP_URL . '/?p=login');
+    exit;
+}
 
+// Get ID from URL
 $id = $_GET['id'] ?? '';
 
 if (!$id) {
-    redirect('?p=sppd');
+    flash_set('ID SPPD tidak ditemukan');
+    header('Location: ' . APP_URL . '/?p=sppd');
+    exit;
 }
 
-$stmt = $pdo->prepare("SELECT * FROM sppd WHERE id = ?");
-$stmt->execute([$id]);
-$sppd = $stmt->fetch();
+// Get SPPD data dari Supabase
+$result = supabase_request('GET', "pengajuan_sppd?id=eq.$id&select=*");
 
-if (!$sppd) {
+if (empty($result['data'])) {
     flash_set('Data SPPD tidak ditemukan');
-    redirect('?p=sppd');
+    header('Location: ' . APP_URL . '/?p=sppd');
+    exit;
 }
+
+$sppd = $result['data'][0];
 
 // Format tanggal Indonesia
-function format_tanggal_indonesia($date) {
+function formatTanggalIndo($date) {
+    if (!$date) return '-';
     $bulan = [
         1 => 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
         'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
@@ -25,31 +35,45 @@ function format_tanggal_indonesia($date) {
     $split = explode('-', $date);
     return $split[2] . ' ' . $bulan[(int)$split[1]] . ' ' . $split[0];
 }
+
+// Hitung lama perjalanan
+$tanggal_mulai = strtotime($sppd['tanggal_mulai']);
+$tanggal_selesai = strtotime($sppd['tanggal_selesai']);
+$diff_days = ceil(($tanggal_selesai - $tanggal_mulai) / (60 * 60 * 24)) + 1;
+$lama_perjalanan = $diff_days . ' hari';
 ?>
 <!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cetak SPPD - <?= h($sppd['nomor']) ?></title>
+    <title>Surat Tugas - <?= h($sppd['nomor_sppd']) ?></title>
     <style>
-        @media print {
-            .no-print {
-                display: none;
-            }
-            body {
-                margin: 0;
-                padding: 20px;
-            }
+        @page {
+            size: A4;
+            margin: 2cm;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
         
         body {
             font-family: 'Times New Roman', Times, serif;
+            font-size: 12pt;
             line-height: 1.6;
-            padding: 40px;
+            color: #000;
+            background: #fff;
+            padding: 20px;
+        }
+        
+        .container {
             max-width: 21cm;
             margin: 0 auto;
-            background: #fff;
+            background: white;
+            padding: 2cm;
         }
         
         .header {
@@ -59,36 +83,63 @@ function format_tanggal_indonesia($date) {
             padding-bottom: 15px;
         }
         
-        .header h2 {
-            margin: 5px 0;
-            font-size: 18px;
-            font-weight: bold;
+        .logo {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 10px;
         }
         
         .header h1 {
-            margin: 10px 0;
-            font-size: 20px;
+            font-size: 18pt;
             font-weight: bold;
-            text-decoration: underline;
+            margin: 5px 0;
+            text-transform: uppercase;
         }
         
-        .nomor-surat {
-            text-align: center;
-            margin-bottom: 30px;
+        .header h2 {
+            font-size: 16pt;
             font-weight: bold;
+            margin: 5px 0;
+        }
+        
+        .header p {
+            font-size: 10pt;
+            margin: 2px 0;
+        }
+        
+        .title {
+            text-align: center;
+            margin: 30px 0 20px 0;
+        }
+        
+        .title h3 {
+            font-size: 14pt;
+            font-weight: bold;
+            text-decoration: underline;
+            margin-bottom: 5px;
+        }
+        
+        .title p {
+            font-size: 12pt;
         }
         
         .content {
-            margin: 20px 0;
+            margin: 30px 0;
+            text-align: justify;
+        }
+        
+        .content p {
+            margin-bottom: 15px;
         }
         
         .content table {
             width: 100%;
+            margin: 20px 0;
             border-collapse: collapse;
         }
         
         .content table td {
-            padding: 8px 10px;
+            padding: 5px;
             vertical-align: top;
         }
         
@@ -100,26 +151,46 @@ function format_tanggal_indonesia($date) {
             width: 5%;
         }
         
-        .ttd-section {
+        .content table td:last-child {
+            width: 65%;
+        }
+        
+        .signature {
             margin-top: 50px;
-            display: flex;
-            justify-content: space-between;
+            text-align: right;
         }
         
-        .ttd-box {
-            width: 45%;
+        .signature-box {
+            display: inline-block;
             text-align: center;
+            min-width: 250px;
         }
         
-        .ttd-box p {
+        .signature-box p {
             margin: 5px 0;
         }
         
-        .ttd-space {
-            height: 80px;
+        .signature-name {
+            font-weight: bold;
+            text-decoration: underline;
+            margin-top: 80px;
         }
         
-        .btn-print {
+        @media print {
+            body {
+                padding: 0;
+            }
+            
+            .container {
+                padding: 0;
+            }
+            
+            .no-print {
+                display: none;
+            }
+        }
+        
+        .print-button {
             position: fixed;
             top: 20px;
             right: 20px;
@@ -129,126 +200,130 @@ function format_tanggal_indonesia($date) {
             border: none;
             border-radius: 5px;
             cursor: pointer;
-            font-size: 16px;
+            font-size: 14px;
             box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            z-index: 1000;
         }
         
-        .btn-print:hover {
+        .print-button:hover {
             background: #3a6c1c;
         }
         
-        .btn-back {
+        .back-button {
             position: fixed;
             top: 20px;
-            right: 150px;
+            right: 140px;
             padding: 10px 20px;
             background: #666;
             color: white;
             border: none;
             border-radius: 5px;
             cursor: pointer;
-            font-size: 16px;
+            font-size: 14px;
             text-decoration: none;
             display: inline-block;
             box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            z-index: 1000;
         }
         
-        .btn-back:hover {
+        .back-button:hover {
             background: #555;
         }
     </style>
 </head>
 <body>
-    <a href="?p=sppd" class="btn-back no-print">← Kembali</a>
-    <button onclick="window.print()" class="btn-print no-print">🖨️ Print</button>
+    <a href="<?= APP_URL ?>/?p=sppd" class="back-button no-print">← Kembali</a>
+    <button onclick="window.print()" class="print-button no-print">🖨️ Cetak</button>
     
-    <div class="header">
-        <h2>PEMERINTAH KABUPATEN/KOTA</h2>
-        <h2>KECAMATAN</h2>
-        <h2>DESA/KELURAHAN</h2>
-        <h1>SURAT PERINTAH PERJALANAN DINAS (SPPD)</h1>
-    </div>
-    
-    <div class="nomor-surat">
-        Nomor: <?= h($sppd['nomor']) ?>
-    </div>
-    
-    <div class="content">
-        <table>
-            <tr>
-                <td>1. Pejabat yang memberi perintah</td>
-                <td>:</td>
-                <td>Kepala Desa/Kelurahan</td>
-            </tr>
-            <tr>
-                <td>2. Nama/NIP pegawai yang diperintah</td>
-                <td>:</td>
-                <td>
-                    <strong><?= h($sppd['nama']) ?></strong><br>
-                    NIP. <?= h($sppd['nip']) ?>
-                </td>
-            </tr>
-            <tr>
-                <td>3. Jabatan</td>
-                <td>:</td>
-                <td><?= h($sppd['jabatan']) ?></td>
-            </tr>
-            <tr>
-                <td>4. Maksud perjalanan dinas</td>
-                <td>:</td>
-                <td><?= h($sppd['maksud']) ?></td>
-            </tr>
-            <tr>
-                <td>5. Tempat tujuan</td>
-                <td>:</td>
-                <td><?= h($sppd['tempat_tujuan']) ?></td>
-            </tr>
-            <tr>
-                <td>6. Lamanya perjalanan dinas</td>
-                <td>:</td>
-                <td>
-                    <?php if ($sppd['durasi'] == '1_hari'): ?>
-                        1 (satu) hari
-                    <?php else: ?>
-                        <?php
-                        $start = new DateTime($sppd['tanggal_mulai']);
-                        $end = new DateTime($sppd['tanggal_selesai']);
-                        $diff = $start->diff($end)->days + 1;
-                        ?>
-                        <?= $diff ?> hari
-                    <?php endif; ?>
-                </td>
-            </tr>
-            <tr>
-                <td>7. Tanggal berangkat</td>
-                <td>:</td>
-                <td><?= format_tanggal_indonesia($sppd['tanggal_mulai']) ?></td>
-            </tr>
-            <tr>
-                <td>8. Tanggal harus kembali</td>
-                <td>:</td>
-                <td><?= format_tanggal_indonesia($sppd['tanggal_selesai']) ?></td>
-            </tr>
-            <tr>
-                <td>9. Keterangan lain-lain</td>
-                <td>:</td>
-                <td>-</td>
-            </tr>
-        </table>
-    </div>
-    
-    <div class="ttd-section">
-        <div class="ttd-box">
-            <p>&nbsp;</p>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>PEMERINTAH KABUPATEN BANDUNG</h1>
+            <h2>KECAMATAN [NAMA KECAMATAN]</h2>
+            <p>Jl. [Alamat Kantor] Telp. (022) [Nomor Telepon]</p>
+            <p>Email: [email@kecamatan.go.id]</p>
         </div>
-        <div class="ttd-box">
-            <p>Dikeluarkan di : _______________</p>
-            <p>Tanggal : <?= format_tanggal_indonesia($sppd['tanggal']) ?></p>
-            <p style="margin-top: 10px;">Kepala Desa/Kelurahan</p>
-            <div class="ttd-space"></div>
-            <p>____________________________</p>
-            <p>NIP. ______________________</p>
+        
+        <!-- Title -->
+        <div class="title">
+            <h3>SURAT TUGAS</h3>
+            <p>Nomor: <?= h($sppd['nomor_sppd'] ?? '-') ?></p>
+        </div>
+        
+        <!-- Content -->
+        <div class="content">
+            <p>Yang bertanda tangan di bawah ini:</p>
+            
+            <table>
+                <tr>
+                    <td>Nama</td>
+                    <td>:</td>
+                    <td><strong>[Nama Camat]</strong></td>
+                </tr>
+                <tr>
+                    <td>Jabatan</td>
+                    <td>:</td>
+                    <td><strong>Camat [Nama Kecamatan]</strong></td>
+                </tr>
+            </table>
+            
+            <p>Dengan ini menugaskan kepada:</p>
+            
+            <table>
+                <tr>
+                    <td>Nama</td>
+                    <td>:</td>
+                    <td><strong><?= h($sppd['nama_pegawai']) ?></strong></td>
+                </tr>
+                <tr>
+                    <td>NIP</td>
+                    <td>:</td>
+                    <td><?= h($sppd['nip']) ?></td>
+                </tr>
+                <tr>
+                    <td>Jabatan</td>
+                    <td>:</td>
+                    <td><?= h($sppd['jabatan']) ?></td>
+                </tr>
+                <tr>
+                    <td>Maksud Perjalanan</td>
+                    <td>:</td>
+                    <td><?= h($sppd['maksud_perjalanan']) ?></td>
+                </tr>
+                <tr>
+                    <td>Tujuan</td>
+                    <td>:</td>
+                    <td><?= h($sppd['tempat_tujuan']) ?></td>
+                </tr>
+                <tr>
+                    <td>Lama Perjalanan</td>
+                    <td>:</td>
+                    <td><?= $lama_perjalanan ?> (<?= formatTanggalIndo($sppd['tanggal_mulai']) ?> s/d <?= formatTanggalIndo($sppd['tanggal_selesai']) ?>)</td>
+                </tr>
+                <tr>
+                    <td>Jenis Durasi</td>
+                    <td>:</td>
+                    <td><?= ucfirst(h($sppd['jenis_durasi'])) ?></td>
+                </tr>
+            </table>
+            
+            <p>Demikian surat tugas ini dibuat untuk dapat dilaksanakan dengan penuh tanggung jawab.</p>
+        </div>
+        
+        <!-- Signature -->
+        <div class="signature">
+            <div class="signature-box">
+                <p><?= h($sppd['tempat_tujuan']) ?>, <?= formatTanggalIndo($sppd['tanggal_pembuatan']) ?></p>
+                <p><strong>Camat [Nama Kecamatan]</strong></p>
+                <p class="signature-name">[Nama Camat]</p>
+                <p>NIP. [NIP Camat]</p>
+            </div>
         </div>
     </div>
+    
+    <script>
+        // Auto print on load (optional)
+        // window.onload = function() { window.print(); }
+    </script>
 </body>
 </html>

@@ -35,38 +35,31 @@ $tanggal_indo = "$tgl " . $bulan_indo[$bln] . " $thn";
     <style>
         @page {
             size: A4;
-            margin: 2cm;
+            margin: 1cm;
         }
         
         body {
             font-family: 'Times New Roman', Times, serif;
-            font-size: 12pt;
-            line-height: 1.6;
+            font-size: 10pt;
+            line-height: 1.4;
             margin: 0;
-            padding: 20px;
+            padding: 15px;
             background: white;
         }
         
         .kop-surat {
-            text-align: center;
             border-bottom: 3px solid #000;
-            padding-bottom: 10px;
-            margin-bottom: 20px;
+            padding-bottom: 8px;
+            margin-bottom: 15px;
         }
         
-        .kop-surat h2 {
-            margin: 5px 0;
-            font-size: 16pt;
+        .kop-surat h2, .kop-surat h1 {
             font-weight: bold;
-        }
-        
-        .kop-surat p {
-            margin: 2px 0;
-            font-size: 11pt;
+            line-height: 1.1;
         }
         
         .nomor-surat {
-            margin: 20px 0;
+            margin: 15px 0;
         }
         
         .nomor-surat table {
@@ -75,7 +68,7 @@ $tanggal_indo = "$tgl " . $bulan_indo[$bln] . " $thn";
         }
         
         .nomor-surat td {
-            padding: 3px 5px;
+            padding: 2px 5px;
             vertical-align: top;
         }
         
@@ -88,20 +81,20 @@ $tanggal_indo = "$tgl " . $bulan_indo[$bln] . " $thn";
         }
         
         .isi-surat {
-            margin: 30px 0;
+            margin: 15px 0;
             text-align: justify;
         }
         
         .isi-surat p {
-            margin: 10px 0;
+            margin: 8px 0;
         }
         
         .detail-undangan {
-            margin: 20px 0 20px 40px;
+            margin: 15px 0 15px 40px;
         }
         
         .detail-undangan table td {
-            padding: 5px 10px;
+            padding: 3px 10px;
             vertical-align: top;
         }
         
@@ -114,24 +107,24 @@ $tanggal_indo = "$tgl " . $bulan_indo[$bln] . " $thn";
         }
         
         .ttd {
-            margin-top: 40px;
+            margin-top: 30px;
             text-align: right;
         }
         
         .ttd p {
-            margin: 5px 0;
+            margin: 4px 0;
         }
         
         .ttd-space {
-            height: 80px;
+            height: 60px;
         }
         
         .tembusan {
-            margin-top: 30px;
+            margin-top: 20px;
         }
         
         .tembusan p {
-            margin: 5px 0;
+            margin: 4px 0;
         }
         
         @media print {
@@ -177,40 +170,70 @@ $tanggal_indo = "$tgl " . $bulan_indo[$bln] . " $thn";
     </div>
 
     <div class="kop-surat">
-        <h2>PEMERINTAH KABUPATEN FLORES TIMUR</h2>
-        <h2>KECAMATAN SOLOR TIMUR</h2>
-        <p>Jl. Trans Solor, Desa Kalike, Kec. Solor Timur</p>
-        <p>Email: solortimur@florestimur.go.id | Telp: (0383) 123456</p>
-    </div>
-
-    <div class="nomor-surat">
-        <table>
+        <table style="width: 100%; border: none;">
             <tr>
-                <td>Nomor</td>
-                <td>:</td>
-                <td><?= h($data['nomor_surat']) ?></td>
-            </tr>
-            <tr>
-                <td>Perihal</td>
-                <td>:</td>
-                <td><strong><?= h($data['perihal']) ?></strong></td>
+                <td style="width: 100px; vertical-align: top; padding-right: 15px;">
+                    <img src="<?= rtrim(APP_URL, '/') ?>/assets/images/logo_kabupaten.jpg" alt="Logo" style="width: 90px; height: auto;">
+                </td>
+                <td style="text-align: center; vertical-align: middle;">
+                    <h2 style="margin: 2px 0; font-size: 14pt;">PEMERINTAH KABUPATEN PURBALINGGA</h2>
+                    <h2 style="margin: 2px 0; font-size: 14pt;">KECAMATAN MREBET</h2>
+                    <h1 style="margin: 5px 0; font-size: 18pt; font-weight: bold;">DESA CAMPAKOAH</h1>
+                    <p style="margin: 2px 0; font-size: 10pt;">Alamat: Jalan Desa Campakoah</p>
+                    <div style="display: flex; justify-content: space-between; margin-top: 5px; font-size: 10pt;">
+                        <span>Alamat: Jalan Desa Campakoah</span>
+                        <span>Kode Pos: 53352</span>
+                    </div>
+                </td>
             </tr>
         </table>
     </div>
 
-    <div style="margin: 30px 0;">
-        <p style="margin: 0;">Kepada Yth,</p>
-        <p style="margin: 5px 0 0 0;"><strong><?= h($data['nama']) ?></strong></p>
-        <p style="margin: 0;">di -</p>
-        <p style="margin: 5px 0 0 40px;"><?= nl2br(h($data['alamat'])) ?></p>
+    <div class="nomor-surat">
+        <table style="width: 100%;">
+            <tr>
+                <td style="width: 80px;">Nomor</td>
+                <td style="width: 10px;">:</td>
+                <td><?= h($data['nomor_surat']) ?></td>
+                <td style="text-align: right; padding-right: 0;">Campakoah, <?= $tanggal_indo ?></td>
+            </tr>
+            <tr>
+                <td>Lamp.</td>
+                <td>:</td>
+                <td>-</td>
+                <td></td>
+            </tr>
+            <tr>
+                <td>Hal</td>
+                <td>:</td>
+                <td><?= h($data['hal'] ?? $data['perihal']) ?></td>
+                <td></td>
+            </tr>
+            <tr>
+                <td colspan="4" style="padding-top: 10px;"><strong>Kepada</strong></td>
+            </tr>
+            <tr>
+                <td colspan="4">Yth.Bpk/Ibu/Sdr.</td>
+            </tr>
+            <tr>
+                <td colspan="4" style="padding-left: 20px;"><?= h($data['nama']) ?></td>
+            </tr>
+            <tr>
+                <td colspan="4" style="padding-left: 0;">di- <?= h($data['alamat']) ?></td>
+            </tr>
+        </table>
     </div>
 
     <div class="isi-surat">
-        <p style="text-indent: 40px;">
-            Dengan hormat, sehubungan dengan akan dilaksanakannya kegiatan sebagaimana 
-            perihal di atas, dengan ini kami mengundang Bapak/Ibu/Saudara/i untuk dapat 
-            hadir pada:
+        <p style="text-indent: 40px; font-style: italic; margin: 20px 0;">
+            Bismillahirrahmanirrahim<br>
+            Assalamu'alaikum Wr. Wb.
         </p>
+        
+        <p style="text-indent: 40px; margin: 20px 0;">
+            Dengan hormat, sehubungan dengan pelaksanaan <?= h($data['hal'] ?? $data['perihal']) ?> dalam rangka <?= h($data['perihal']) ?>, maka kami mohon kehadiran Bapak/Ibu/Sdr. pada:
+        </p>
+        
     </div>
 
     <div class="detail-undangan">
@@ -221,38 +244,48 @@ $tanggal_indo = "$tgl " . $bulan_indo[$bln] . " $thn";
                 <td><?= h($data['hari_tanggal']) ?></td>
             </tr>
             <tr>
-                <td>Waktu</td>
+                <td>Pukul</td>
                 <td>:</td>
-                <td><?= h($data['jam']) ?> WITA</td>
+                <td><?= h($data['jam']) ?></td>
             </tr>
             <tr>
                 <td>Tempat</td>
                 <td>:</td>
                 <td><?= h($data['tempat_pelaksanaan']) ?></td>
             </tr>
+            <?php if (!empty($data['agenda'])): ?>
+            <tr>
+                <td>Agenda</td>
+                <td>:</td>
+                <td><?= nl2br(h($data['agenda'])) ?></td>
+            </tr>
+            <?php endif; ?>
         </table>
     </div>
 
     <div class="isi-surat">
-        <p style="text-indent: 40px;">
-            Demikian undangan ini kami sampaikan. Atas perhatian dan kehadiran 
-            Bapak/Ibu/Saudara/i, kami ucapkan terima kasih.
+        <p style="text-indent: 40px; margin: 20px 0;">
+            Demikian undangan ini kami sampaikan, atas perhatian dan kehadirannya disampaikan terimakasih.
+        </p>
+        
+        <p style="text-indent: 40px; font-style: italic; margin: 20px 0;">
+            Wassalamu'alaikum Wr. Wb.
         </p>
     </div>
 
     <div class="ttd">
-        <p><?= $tanggal_indo ?></p>
-        <p><strong>CAMAT SOLOR TIMUR</strong></p>
+        <p>Kepala Desa Campakoah,</p>
         <div class="ttd-space"></div>
-        <p><strong><u>Nama Camat</u></strong></p>
-        <p>NIP. 19700101 199003 1 001</p>
+        <p><strong><u>KUSTOMO</u></strong></p>
     </div>
 
-    <?php if (!empty($data['tembusan_kepada'])): ?>
     <div class="tembusan">
-        <p><strong>Tembusan:</strong></p>
+        <p><strong>Tembusan disampaikan kepada :</strong></p>
+        <?php if (!empty($data['tembusan_kepada'])): ?>
         <p><?= nl2br(h($data['tembusan_kepada'])) ?></p>
+        <?php else: ?>
+        <p><strong>Tembusan kepada</strong></p>
+        <?php endif; ?>
     </div>
-    <?php endif; ?>
 </body>
 </html>

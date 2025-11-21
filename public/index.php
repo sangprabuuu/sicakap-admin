@@ -53,6 +53,9 @@ switch ($page) {
     case 'reports':
         require __DIR__ . '/../app/pages/reports.php';
         break;
+    case 'reports_delete':
+        require __DIR__ . '/../app/pages/reports_delete.php';
+        break;
     case 'export_report':
         require __DIR__ . '/../app/pages/export_report.php';
         break;

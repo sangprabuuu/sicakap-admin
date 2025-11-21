@@ -17,7 +17,7 @@ if (empty($pengajuan_id)) {
 }
 
 // Validate action
-$valid_actions = ['proses', 'selesai', 'tolak', 'update_nomor'];
+$valid_actions = ['proses', 'selesai', 'tolak', 'update_nomor', 'kirim_komentar'];
 if (!in_array($action, $valid_actions)) {
     flash_set('Aksi tidak valid');
     header('Location: ' . APP_URL . '/?p=requests');
@@ -42,6 +42,75 @@ if ($action === 'update_nomor') {
         flash_set('No. Pengajuan berhasil diperbarui');
     } else {
         flash_set('Gagal memperbarui No. Pengajuan');
+    }
+    
+    header('Location: ' . APP_URL . '/?p=request_detail&id=' . $pengajuan_id);
+    exit;
+}
+
+// Handle kirim_komentar action - Add comment to existing "Ditolak" status
+if ($action === 'kirim_komentar') {
+    $komentar = trim($_POST['komentar'] ?? '');
+    
+    if (empty($komentar)) {
+        flash_set('Komentar tidak boleh kosong');
+        header('Location: ' . APP_URL . '/?p=request_detail&id=' . $pengajuan_id);
+        exit;
+    }
+    
+    // Ambil data pengajuan untuk notifikasi
+    $pengajuan_endpoint = "pengajuan_dokumen?id=eq.$pengajuan_id&select=firebase_user_id,jenis_dokumen,created_at,nama";
+    $pengajuan_result = supabase_request('GET', $pengajuan_endpoint);
+    
+    if ($pengajuan_result['code'] !== 200 || empty($pengajuan_result['data'])) {
+        flash_set('Pengajuan tidak ditemukan');
+        header('Location: ' . APP_URL . '/?p=requests');
+        exit;
+    }
+    
+    $pengajuan = $pengajuan_result['data'][0];
+    $firebase_user_id = $pengajuan['firebase_user_id'] ?? '';
+    $jenis_dokumen = $pengajuan['jenis_dokumen'] ?? '';
+    $tanggal_pengajuan = $pengajuan['created_at'] ?? '';
+    $nama_pemohon = $pengajuan['nama'] ?? '';
+    
+    // Insert riwayat baru dengan komentar
+    $riwayat_data = json_encode([
+        'pengajuan_id' => $pengajuan_id,
+        'status' => 'Ditolak',
+        'keterangan' => $komentar,
+        'firebase_user_id' => $firebase_user_id,
+        'jenis_pengajuan' => $jenis_dokumen,
+        'tanggal_pengajuan' => $tanggal_pengajuan
+    ]);
+    
+    $result = supabase_request('POST', 'riwayat', $riwayat_data);
+    
+    if ($result['code'] === 201 || $result['code'] === 200) {
+        // Kirim notifikasi ke user (jika ada firebase_user_id)
+        if (!empty($firebase_user_id)) {
+            $notif_data = json_encode([
+                'firebase_user_id' => $firebase_user_id,
+                'title' => 'Komentar Baru pada Pengajuan',
+                'message' => "Komentar baru ditambahkan pada pengajuan {$jenis_dokumen} Anda: {$komentar}",
+                'type' => 'komentar',
+                'pengajuan_id' => $pengajuan_id,
+                'is_read' => false
+            ]);
+            
+            supabase_request('POST', 'notifikasi', $notif_data);
+        }
+        
+        flash_set('Komentar berhasil dikirim dan notifikasi terkirim ke pemohon');
+    } else {
+        // Debug error
+        $error_detail = '';
+        if (isset($result['data']['message'])) {
+            $error_detail = $result['data']['message'];
+        } elseif (isset($result['data']['error'])) {
+            $error_detail = $result['data']['error'];
+        }
+        flash_set('Gagal mengirim komentar: ' . $error_detail);
     }
     
     header('Location: ' . APP_URL . '/?p=request_detail&id=' . $pengajuan_id);

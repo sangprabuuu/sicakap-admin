@@ -120,14 +120,24 @@ $flash = flash_get();
             <input type="text" name="nomor_surat" placeholder="Nomor Surat" value="<?= h($undangan['nomor_surat'] ?? '') ?>" required>
           </div>
           <div class="form-group">
+            <label>Hal</label>
+            <input type="text" name="hal" placeholder="Hal" value="<?= h($undangan['hal'] ?? '') ?>" required>
+          </div>
+        </div>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label>Nama</label>
+            <input type="text" name="nama" placeholder="Nama" value="<?= h($undangan['nama'] ?? '') ?>" required>
+          </div>
+          <div class="form-group">
             <label>Perihal</label>
             <input type="text" name="perihal" placeholder="Perihal" value="<?= h($undangan['perihal'] ?? '') ?>" required>
           </div>
         </div>
-
         <div class="form-group">
-          <label>Nama</label>
-          <input type="text" name="nama" placeholder="Nama" value="<?= h($undangan['nama'] ?? '') ?>" required>
+          <label>Agenda</label>
+          <textarea name="agenda" placeholder="Agenda" required><?= h($undangan['agenda'] ?? '') ?></textarea>
         </div>
 
         <div class="form-group">

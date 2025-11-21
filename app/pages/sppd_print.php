@@ -36,6 +36,22 @@ function formatTanggalIndo($date) {
     return $split[2] . ' ' . $bulan[(int)$split[1]] . ' ' . $split[0];
 }
 
+// Format hari dalam bahasa Indonesia
+function formatHariIndo($date) {
+    if (!$date) return '-';
+    $hari = [
+        'Sunday' => 'Minggu',
+        'Monday' => 'Senin',
+        'Tuesday' => 'Selasa',
+        'Wednesday' => 'Rabu',
+        'Thursday' => 'Kamis',
+        'Friday' => 'Jumat',
+        'Saturday' => 'Sabtu'
+    ];
+    $day_name = date('l', strtotime($date));
+    return $hari[$day_name] ?? '-';
+}
+
 // Hitung lama perjalanan
 $tanggal_mulai = strtotime($sppd['tanggal_mulai']);
 $tanggal_selesai = strtotime($sppd['tanggal_selesai']);
@@ -47,11 +63,11 @@ $lama_perjalanan = $diff_days . ' hari';
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Surat Tugas - <?= h($sppd['nomor_sppd']) ?></title>
+    <title>Surat Perintah/Tugas - <?= h($sppd['nomor_sppd']) ?></title>
     <style>
         @page {
             size: A4;
-            margin: 2cm;
+            margin: 1.5cm 2cm;
         }
         
         * {
@@ -62,8 +78,8 @@ $lama_perjalanan = $diff_days . ' hari';
         
         body {
             font-family: 'Times New Roman', Times, serif;
-            font-size: 12pt;
-            line-height: 1.6;
+            font-size: 11pt;
+            line-height: 1.5;
             color: #000;
             background: #fff;
             padding: 20px;
@@ -73,50 +89,65 @@ $lama_perjalanan = $diff_days . ' hari';
             max-width: 21cm;
             margin: 0 auto;
             background: white;
-            padding: 2cm;
         }
         
         .header {
             text-align: center;
-            margin-bottom: 30px;
+            margin-bottom: 15px;
             border-bottom: 3px solid #000;
-            padding-bottom: 15px;
+            padding-bottom: 8px;
+            position: relative;
         }
         
         .logo {
-            width: 80px;
-            height: 80px;
-            margin: 0 auto 10px;
+            position: absolute;
+            left: 20px;
+            top: 19px;
+            width: 110px;
+            height: 110px;
+        }
+        
+        .header-text {
+            padding-top: 10px;
+            margin-left: 60px;
         }
         
         .header h1 {
-            font-size: 18pt;
+            font-size: 14pt;
+            font-weight: bold;
+            margin: 2px 0;
+            text-transform: uppercase;
+        }
+        
+        .header h2 {
+            font-size: 13pt;
+            font-weight: bold;
+            margin: 2px 0;
+            text-transform: uppercase;
+        }
+        
+        .header h3 {
+            font-size: 16pt;
             font-weight: bold;
             margin: 5px 0;
             text-transform: uppercase;
         }
         
-        .header h2 {
-            font-size: 16pt;
-            font-weight: bold;
-            margin: 5px 0;
-        }
-        
         .header p {
-            font-size: 10pt;
+            font-size: 11pt;
             margin: 2px 0;
         }
         
         .title {
             text-align: center;
-            margin: 30px 0 20px 0;
+            margin: 20px 0 15px 0;
         }
         
         .title h3 {
             font-size: 14pt;
             font-weight: bold;
             text-decoration: underline;
-            margin-bottom: 5px;
+            margin-bottom: 10px;
         }
         
         .title p {
@@ -124,46 +155,58 @@ $lama_perjalanan = $diff_days . ' hari';
         }
         
         .content {
-            margin: 30px 0;
+            margin: 20px 0;
             text-align: justify;
         }
         
         .content p {
-            margin-bottom: 15px;
+            margin-bottom: 12px;
+            text-indent: 50px;
         }
         
-        .content table {
-            width: 100%;
-            margin: 20px 0;
-            border-collapse: collapse;
+        .content p.no-indent {
+            text-indent: 0;
         }
         
-        .content table td {
-            padding: 5px;
-            vertical-align: top;
+        .detail-list {
+            margin: 15px 0 15px 40px;
         }
         
-        .content table td:first-child {
-            width: 30%;
+        .detail-list ol {
+            list-style: decimal;
+            padding-left: 20px;
         }
         
-        .content table td:nth-child(2) {
-            width: 5%;
+        .detail-list li {
+            margin: 8px 0;
         }
         
-        .content table td:last-child {
-            width: 65%;
+        .detail-row {
+            display: flex;
+            margin: 5px 0;
+        }
+        
+        .detail-row .label {
+            width: 150px;
+        }
+        
+        .detail-row .colon {
+            width: 20px;
+        }
+        
+        .detail-row .value {
+            flex: 1;
         }
         
         .signature {
-            margin-top: 50px;
+            margin-top: 30px;
             text-align: right;
         }
         
         .signature-box {
             display: inline-block;
             text-align: center;
-            min-width: 250px;
+            min-width: 200px;
         }
         
         .signature-box p {
@@ -172,8 +215,7 @@ $lama_perjalanan = $diff_days . ' hari';
         
         .signature-name {
             font-weight: bold;
-            text-decoration: underline;
-            margin-top: 80px;
+            margin-top: 60px;
         }
         
         @media print {
@@ -232,91 +274,115 @@ $lama_perjalanan = $diff_days . ' hari';
     </style>
 </head>
 <body>
-    <a href="<?= APP_URL ?>/?p=sppd" class="back-button no-print">← Kembali</a>
-    <button onclick="window.print()" class="print-button no-print">🖨️ Cetak</button>
+    <!-- <a href="<?= APP_URL ?>/?p=sppd" class="back-button no-print">← Kembali</a> -->
+    <button onclick="window.print()" class="print-button no-print">
+        <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+             <path d="M5 1a2 2 0 0 0-2 2v1h10V3a2 2 0 0 0-2-2H5zm6 8H5a1 1 0 0 0-1 1v3a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-3a1 1 0 0 0-1-1z"/>
+             <path d="M0 7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2h-1v-2a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v2H2a2 2 0 0 1-2-2V7zm2.5 1a.5.5 0 1 0 0-1 .5.5 0 0 0 0 1z"/>
+        </svg>
+    </button>
     
     <div class="container">
         <!-- Header -->
         <div class="header">
-            <h1>PEMERINTAH KABUPATEN BANDUNG</h1>
-            <h2>KECAMATAN [NAMA KECAMATAN]</h2>
-            <p>Jl. [Alamat Kantor] Telp. (022) [Nomor Telepon]</p>
-            <p>Email: [email@kecamatan.go.id]</p>
+            <img src="<?= rtrim(APP_URL, '/') ?>/assets/images/logo_kabupaten.jpg" alt="Logo Kabupaten" class="logo">
+            <div class="header-text">
+                <h1>PEMERINTAH KABUPATEN PURBALINGGA</h1>
+                <h2>KECAMATAN MREBET</h2>
+                <h3>DESA CAMPAKOAH</h3>
+                <p>Alamat : Jalan Desa Campakoah &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Kode Pos : 53352</p>
+            </div>
         </div>
         
         <!-- Title -->
         <div class="title">
-            <h3>SURAT TUGAS</h3>
-            <p>Nomor: <?= h($sppd['nomor_sppd'] ?? '-') ?></p>
+            <h3>SURAT PERINTAH / TUGAS</h3>
+            <p>Nomor : &nbsp;&nbsp; <?= h($sppd['nomor_sppd'] ?? '_____ / _____ / _____') ?></p>
         </div>
         
         <!-- Content -->
         <div class="content">
-            <p>Yang bertanda tangan di bawah ini:</p>
+            <p>Yang bertanda tangan dibawah ini Kepala Desa Campakoah  Kecamatan Mrebet Kabupaten Purbalingga, dengan ini memberikan perintah kepada saudara :</p>
             
-            <table>
-                <tr>
-                    <td>Nama</td>
-                    <td>:</td>
-                    <td><strong>[Nama Camat]</strong></td>
-                </tr>
-                <tr>
-                    <td>Jabatan</td>
-                    <td>:</td>
-                    <td><strong>Camat [Nama Kecamatan]</strong></td>
-                </tr>
-            </table>
+            <div class="detail-list">
+                <ol>
+                    <li>
+                        <div class="detail-row">
+                            <div class="label">Nama</div>
+                            <div class="colon">:</div>
+                            <div class="value"><?= h($sppd['nama_pegawai']) ?></div>
+                        </div>
+                    </li>
+                    <li>
+                        <div class="detail-row">
+                            <div class="label">Jabatan</div>
+                            <div class="colon">:</div>
+                            <div class="value"><?= h($sppd['jabatan']) ?></div>
+                        </div>
+                    </li>
+                    <li>
+                        <div class="detail-row">
+                            <div class="label">Alamat Tempat tinggal</div>
+                            <div class="colon">:</div>
+                            <div class="value"><?= h($sppd['alamat_tempat_tinggal'] ?? 'Desa Campakoah') ?></div>
+                        </div>
+                    </li>
+                </ol>
+            </div>
             
-            <p>Dengan ini menugaskan kepada:</p>
+            <p>Untuk melaksanakan perintah dan mengadakan perjalanan dinas dalam rangka  sebagai berikut :</p>
             
-            <table>
-                <tr>
-                    <td>Nama</td>
-                    <td>:</td>
-                    <td><strong><?= h($sppd['nama_pegawai']) ?></strong></td>
-                </tr>
-                <tr>
-                    <td>NIP</td>
-                    <td>:</td>
-                    <td><?= h($sppd['nip']) ?></td>
-                </tr>
-                <tr>
-                    <td>Jabatan</td>
-                    <td>:</td>
-                    <td><?= h($sppd['jabatan']) ?></td>
-                </tr>
-                <tr>
-                    <td>Maksud Perjalanan</td>
-                    <td>:</td>
-                    <td><?= h($sppd['maksud_perjalanan']) ?></td>
-                </tr>
-                <tr>
-                    <td>Tujuan</td>
-                    <td>:</td>
-                    <td><?= h($sppd['tempat_tujuan']) ?></td>
-                </tr>
-                <tr>
-                    <td>Lama Perjalanan</td>
-                    <td>:</td>
-                    <td><?= $lama_perjalanan ?> (<?= formatTanggalIndo($sppd['tanggal_mulai']) ?> s/d <?= formatTanggalIndo($sppd['tanggal_selesai']) ?>)</td>
-                </tr>
-                <tr>
-                    <td>Jenis Durasi</td>
-                    <td>:</td>
-                    <td><?= ucfirst(h($sppd['jenis_durasi'])) ?></td>
-                </tr>
-            </table>
+            <div class="detail-list">
+                <ol>
+                    <li>
+                        <div class="detail-row">
+                            <div class="label">Hari</div>
+                            <div class="colon">:</div>
+                            <div class="value"><?= formatHariIndo($sppd['tanggal_mulai']) ?></div>
+                        </div>
+                    </li>
+                    <li>
+                        <div class="detail-row">
+                            <div class="label">Tanggal</div>
+                            <div class="colon">:</div>
+                            <div class="value">
+                                <?php 
+                                if ($sppd['tanggal_mulai'] === $sppd['tanggal_selesai']) {
+                                    echo formatTanggalIndo($sppd['tanggal_mulai']);
+                                } else {
+                                    echo formatTanggalIndo($sppd['tanggal_mulai']) . ' s/d ' . formatTanggalIndo($sppd['tanggal_selesai']);
+                                }
+                                ?>
+                            </div>
+                        </div>
+                    </li>
+                    <li>
+                        <div class="detail-row">
+                            <div class="label">Kantor Tujuan</div>
+                            <div class="colon">:</div>
+                            <div class="value"><?= h($sppd['tempat_tujuan']) ?></div>
+                        </div>
+                    </li>
+                    <li>
+                        <div class="detail-row">
+                            <div class="label">Kegiatan</div>
+                            <div class="colon">:</div>
+                            <div class="value"><?= h($sppd['maksud_perjalanan']) ?></div>
+                        </div>
+                    </li>
+                </ol>
+            </div>
             
-            <p>Demikian surat tugas ini dibuat untuk dapat dilaksanakan dengan penuh tanggung jawab.</p>
+            <p>Demikian Surat Tugas ini kami buat untuk dapat dilaksanakan sesuai dengan ketentuan dan harap maklum bagi yang berkepentingan.</p>
         </div>
         
         <!-- Signature -->
         <div class="signature">
             <div class="signature-box">
-                <p><?= h($sppd['tempat_tujuan']) ?>, <?= formatTanggalIndo($sppd['tanggal_pembuatan']) ?></p>
-                <p><strong>Camat [Nama Kecamatan]</strong></p>
-                <p class="signature-name">[Nama Camat]</p>
-                <p>NIP. [NIP Camat]</p>
+                <p>Campakoah, <?= formatTanggalIndo($sppd['tanggal_pembuatan']) ?></p>
+                <p><strong>KEPALA DESA CAMPAKOAH</strong></p>
+                <br><br><br><br>
+                <p class="signature-name">SUTOMO</p>
             </div>
         </div>
     </div>

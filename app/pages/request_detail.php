@@ -51,15 +51,15 @@ $flash = flash_get();
   <link rel="stylesheet" href="<?= h(rtrim(APP_URL, '/')) ?>/assets/css/style.css">
   <script>
     function cetakDanSelesai(id) {
-      // Buka tab baru untuk print surat
-      window.open('?p=print_surat&id=' + id, '_blank');
-      
-      // Tunggu 2 detik lalu submit form selesai
-      setTimeout(function() {
-        if (confirm('Apakah dokumen sudah dicetak? Tandai pengajuan sebagai selesai?')) {
-          document.getElementById('formSelesai').submit();
-        }
-      }, 2000);
+      if (confirm('Tandai pengajuan ini sebagai selesai dan cetak surat?')) {
+        // Submit form selesai dulu
+        document.getElementById('formSelesai').submit();
+        
+        // Buka tab baru untuk print surat setelah submit
+        setTimeout(function() {
+          window.open('?p=print_surat&id=' + id, '_blank');
+        }, 500);
+      }
     }
   </script>
 </head>
@@ -189,10 +189,46 @@ $flash = flash_get();
                 <span class="badge <?= $badge_class ?>"><?= h($riwayat['status']) ?></span>
                 <span class="timeline-date"><?= date('d M Y, H:i', strtotime($riwayat['created_at'])) ?></span>
               </div>
+              <?php if (!empty($riwayat['keterangan'])): ?>
+              <div class="timeline-comment">
+                <strong>Keterangan:</strong>
+                <p><?= h($riwayat['keterangan']) ?></p>
+              </div>
+              <?php endif; ?>
             </div>
           </div>
           <?php endforeach; ?>
         </div>
+      </div>
+      <?php endif; ?>
+
+      <!-- Form Komentar untuk Status Ditolak -->
+      <?php if ($current_status === 'Ditolak'): ?>
+      <div class="detail-card">
+        <div class="detail-header">
+          <h3>Tambah Komentar</h3>
+        </div>
+        
+        <form method="post" action="?p=request_approve" style="padding: 20px;">
+          <input type="hidden" name="pengajuan_id" value="<?= h($id) ?>">
+          <input type="hidden" name="action" value="kirim_komentar">
+          
+          <div style="margin-bottom: 15px;">
+            <label for="komentar" style="display: block; margin-bottom: 8px; font-weight: 500;">Komentar / Catatan:</label>
+            <textarea 
+              name="komentar" 
+              id="komentar" 
+              rows="4" 
+              required
+              placeholder="Masukkan komentar atau catatan untuk pemohon..."
+              style="width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 4px; font-size: 14px; font-family: inherit; resize: vertical;"
+            ></textarea>
+          </div>
+          
+          <button type="submit" class="btn btn-primary">
+            Kirim Komentar
+          </button>
+        </form>
       </div>
       <?php endif; ?>
 
@@ -208,7 +244,7 @@ $flash = flash_get();
               <input type="hidden" name="pengajuan_id" value="<?= h($id) ?>">
               <input type="hidden" name="action" value="proses">
               <button type="submit" class="btn btn-warning" onclick="return confirm('Proses pengajuan ini?')">
-                🔄 Proses Pengajuan
+                Proses Pengajuan
               </button>
             </form>
           <?php endif; ?>
@@ -218,7 +254,7 @@ $flash = flash_get();
               <input type="hidden" name="pengajuan_id" value="<?= h($id) ?>">
               <input type="hidden" name="action" value="selesai">
               <button type="button" class="btn btn-success" onclick="cetakDanSelesai('<?= h($id) ?>')">
-                ✅ Tandai Selesai
+                Tandai Selesai
               </button>
             </form>
           <?php endif; ?>
@@ -228,9 +264,15 @@ $flash = flash_get();
               <input type="hidden" name="pengajuan_id" value="<?= h($id) ?>">
               <input type="hidden" name="action" value="tolak">
               <button type="submit" class="btn btn-danger" onclick="return confirm('Tolak pengajuan ini?')">
-                ❌ Tolak Pengajuan
+                Tolak Pengajuan
               </button>
             </form>
+          <?php endif; ?>
+          
+          <?php if ($current_status === 'Selesai'): ?>
+            <a href="?p=print_surat&id=<?= h($id) ?>" target="_blank" class="btn btn-primary">
+              Download Surat
+            </a>
           <?php endif; ?>
           
           <a href="?p=requests" class="btn btn-light">← Kembali</a>

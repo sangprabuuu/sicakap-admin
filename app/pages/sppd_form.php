@@ -141,13 +141,22 @@ $flash = flash_get();
             <input type="text" name="jabatan" placeholder="Jabatan" value="<?= h($sppd['jabatan'] ?? '') ?>" required>
           </div>
           <div class="form-group">
+            <label>Alamat Tempat Tinggal</label>
+            <input type="text" name="alamat_tempat_tinggal" placeholder="Alamat Tempat Tinggal" value="<?= h($sppd['alamat_tempat_tinggal'] ?? 'Desa Campakoah') ?>" required>
+          </div>
+          <div class="form-group">
             <label>Maksud Perjalanan</label>
             <input type="text" name="maksud_perjalanan" placeholder="Maksud Perjalanan" value="<?= h($sppd['maksud_perjalanan'] ?? '') ?>" required>
           </div>
+        </div>
+
+        <div class="form-row">
           <div class="form-group">
             <label>Tempat Tujuan</label>
             <input type="text" name="tempat_tujuan" placeholder="Tempat Tujuan" value="<?= h($sppd['tempat_tujuan'] ?? '') ?>" required>
           </div>
+          <div class="form-group"></div>
+          <div class="form-group"></div>
         </div>
 
         <div class="form-group">
@@ -169,9 +178,9 @@ $flash = flash_get();
             <label>Tanggal Mulai</label>
             <input type="date" name="tanggal_mulai" value="<?= h($sppd['tanggal_mulai'] ?? '') ?>" required>
           </div>
-          <div class="form-group">
+          <div class="form-group" id="tanggal-selesai-group">
             <label>Tanggal Selesai</label>
-            <input type="date" name="tanggal_selesai" value="<?= h($sppd['tanggal_selesai'] ?? '') ?>" required>
+            <input type="date" name="tanggal_selesai" id="tanggal-selesai" value="<?= h($sppd['tanggal_selesai'] ?? '') ?>" required>
           </div>
           <div class="form-group"></div>
         </div>
@@ -184,5 +193,40 @@ $flash = flash_get();
     </div>
   </section>
 </div>
+
+<script>
+  // Toggle tanggal selesai based on jenis durasi
+  const radioHarian = document.querySelector('input[name="jenis_durasi"][value="harian"]');
+  const radioLebihDari1Hari = document.querySelector('input[name="jenis_durasi"][value="lebih dari 1 hari"]');
+  const tanggalSelesaiGroup = document.getElementById('tanggal-selesai-group');
+  const tanggalSelesaiInput = document.getElementById('tanggal-selesai');
+  const tanggalMulaiInput = document.querySelector('input[name="tanggal_mulai"]');
+
+  function toggleTanggalSelesai() {
+    if (radioHarian.checked) {
+      tanggalSelesaiGroup.style.display = 'none';
+      tanggalSelesaiInput.removeAttribute('required');
+      // Set tanggal selesai sama dengan tanggal mulai untuk harian
+      tanggalSelesaiInput.value = tanggalMulaiInput.value;
+    } else {
+      tanggalSelesaiGroup.style.display = 'block';
+      tanggalSelesaiInput.setAttribute('required', 'required');
+    }
+  }
+
+  // Update tanggal selesai ketika tanggal mulai berubah (jika harian)
+  tanggalMulaiInput.addEventListener('change', function() {
+    if (radioHarian.checked) {
+      tanggalSelesaiInput.value = tanggalMulaiInput.value;
+    }
+  });
+
+  radioHarian.addEventListener('change', toggleTanggalSelesai);
+  radioLebihDari1Hari.addEventListener('change', toggleTanggalSelesai);
+
+  // Initialize on page load
+  toggleTanggalSelesai();
+</script>
+
 </body>
 </html>

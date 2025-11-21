@@ -10,6 +10,17 @@ $total_pengajuan = !empty($pengajuan_response['data']) ? count($pengajuan_respon
 $selesai_endpoint = 'riwayat?status=eq.Selesai&select=id';
 $selesai_response = supabase_request('GET', $selesai_endpoint);
 $surat_selesai = !empty($selesai_response['data']) ? count($selesai_response['data']) : 0;
+
+// Hitung total laporan (SPPD + Undangan)
+$sppd_endpoint = 'pengajuan_sppd?select=id';
+$sppd_response = supabase_request('GET', $sppd_endpoint);
+$total_sppd = !empty($sppd_response['data']) ? count($sppd_response['data']) : 0;
+
+$undangan_endpoint = 'surat_undangan?select=id';
+$undangan_response = supabase_request('GET', $undangan_endpoint);
+$total_undangan = !empty($undangan_response['data']) ? count($undangan_response['data']) : 0;
+
+$total_laporan = $total_sppd + $total_undangan;
 ?>
 <!doctype html>
 <html lang="id">
@@ -45,9 +56,15 @@ $surat_selesai = !empty($selesai_response['data']) ? count($selesai_response['da
       </div>
 
       <div class="card">
-        <div class="card-title">Surat Selesai</div>
+        <div class="card-title">Dokumen Selesai</div>
         <div class="card-value"><?= intval($surat_selesai) ?></div>
         <div class="card-desc">Jumlah surat yang selesai dibuat</div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Laporan</div>
+        <div class="card-value"><?= intval($total_laporan) ?></div>
+        <div class="card-desc">SPPD (<?= intval($total_sppd) ?>) & Undangan (<?= intval($total_undangan) ?>)</div>
       </div>
     </div>
 

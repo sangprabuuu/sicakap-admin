@@ -1004,7 +1004,7 @@ a:hover {
 }
 
 .cards .card:nth-child(3) {
-    border-left: 4px solid #8b5cf6;
+    border-left: 4px solid #ef4444;
 }
 
 /* Report Styles */
@@ -1284,6 +1284,28 @@ a:hover {
     font-size: 14px;
     color: #374151;
     border: 1px solid #e5e7eb;
+}
+
+.timeline-comment {
+    margin-top: 12px;
+    padding: 12px;
+    background: #fff;
+    border-radius: 6px;
+    border-left: 3px solid #dc2626;
+}
+
+.timeline-comment strong {
+    display: block;
+    color: #dc2626;
+    margin-bottom: 6px;
+    font-size: 13px;
+}
+
+.timeline-comment p {
+    margin: 0;
+    color: #374151;
+    font-size: 14px;
+    line-height: 1.6;
 }
 
 /* Responsive Report */

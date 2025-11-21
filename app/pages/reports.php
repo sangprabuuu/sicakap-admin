@@ -1,5 +1,4 @@
 <?php
-$pdo = db();
 $user = current_user();
 
 // Get filter parameters
@@ -32,89 +31,41 @@ switch ($period) {
         break;
 }
 
-// Build where clause for date filter
-$where_request = "WHERE DATE(lr.created_at) BETWEEN :date_from AND :date_to";
-$where_issued = "WHERE DATE(il.issued_at) BETWEEN :date_from AND :date_to";
-$params = [':date_from' => $date_from, ':date_to' => $date_to];
+// Get data from Supabase
+$filter = "tanggal=gte.$date_from&tanggal=lte.$date_to";
+$result = supabase_request('GET', "pelaporan_masalah?$filter&select=*&order=created_at.desc");
+$laporans = $result['data'] ?? [];
 
-// 1. STATISTIK UMUM
+// Get SPPD data
+$sppd_result = supabase_request('GET', "pengajuan_sppd?tanggal_pembuatan=gte.$date_from&tanggal_pembuatan=lte.$date_to&select=*");
+$sppds = $sppd_result['data'] ?? [];
+
+// Get Undangan data
+$undangan_result = supabase_request('GET', "surat_undangan?tanggal_surat=gte.$date_from&tanggal_surat=lte.$date_to&select=*");
+$undangans = $undangan_result['data'] ?? [];
+
+// Calculate statistics
 $stats = [];
+$stats['total_laporan'] = count($laporans);
+$stats['total_sppd'] = count($sppds);
+$stats['total_undangan'] = count($undangans);
+$stats['total_semua'] = $stats['total_laporan'] + $stats['total_sppd'] + $stats['total_undangan'];
 
-// Total requests in period
-$sql = "SELECT COUNT(*) FROM letter_requests lr $where_request";
-$stmt = $pdo->prepare($sql);
-$stmt->execute($params);
-$stats['total_requests'] = $stmt->fetchColumn();
-
-// Requests by status
-$sql = "SELECT status, COUNT(*) as count FROM letter_requests lr $where_request GROUP BY status";
-$stmt = $pdo->prepare($sql);
-$stmt->execute($params);
-$stats['by_status'] = [];
-while ($row = $stmt->fetch()) {
-    $stats['by_status'][$row['status']] = $row['count'];
+// Group by category
+$by_category = [];
+foreach ($laporans as $lap) {
+    $cat = $lap['kategori_permasalahan'] ?? 'Lainnya';
+    $by_category[$cat] = ($by_category[$cat] ?? 0) + 1;
 }
+arsort($by_category);
 
-// Total issued letters in period
-$sql = "SELECT COUNT(*) FROM issued_letters il $where_issued";
-$stmt = $pdo->prepare($sql);
-$stmt->execute($params);
-$stats['total_issued'] = $stmt->fetchColumn();
-
-// Average processing time (from created to finished)
-$sql = "SELECT AVG(TIMESTAMPDIFF(HOUR, lr.created_at, il.issued_at)) as avg_hours
-        FROM letter_requests lr
-        JOIN issued_letters il ON lr.id = il.request_id
-        $where_issued";
-$stmt = $pdo->prepare($sql);
-$stmt->execute($params);
-$avg = $stmt->fetchColumn();
-$stats['avg_processing_hours'] = $avg ? round($avg, 1) : 0;
-$stats['avg_processing_days'] = $avg ? round($avg / 24, 1) : 0;
-
-// 2. LAPORAN PER JENIS SURAT
-$sql = "SELECT lt.name, lt.code, COUNT(*) as total
-        FROM letter_requests lr
-        JOIN letter_templates lt ON lr.template_id = lt.id
-        $where_request
-        GROUP BY lt.id, lt.name, lt.code
-        ORDER BY total DESC";
-$stmt = $pdo->prepare($sql);
-$stmt->execute($params);
-$by_template = $stmt->fetchAll();
-
-// 3. LAPORAN ISSUED PER JENIS SURAT
-$sql = "SELECT lt.name, lt.code, COUNT(*) as total
-        FROM issued_letters il
-        JOIN letter_templates lt ON il.template_id = lt.id
-        $where_issued
-        GROUP BY lt.id, lt.name, lt.code
-        ORDER BY total DESC";
-$stmt = $pdo->prepare($sql);
-$stmt->execute($params);
-$issued_by_template = $stmt->fetchAll();
-
-// 4. TREND HARIAN (untuk chart)
-$sql = "SELECT DATE(lr.created_at) as date, COUNT(*) as count
-        FROM letter_requests lr
-        $where_request
-        GROUP BY DATE(lr.created_at)
-        ORDER BY date ASC";
-$stmt = $pdo->prepare($sql);
-$stmt->execute($params);
-$daily_trend = $stmt->fetchAll();
-
-// 5. TOP PEMOHON
-$sql = "SELECT lr.resident_name, lr.resident_nik, COUNT(*) as total
-        FROM letter_requests lr
-        $where_request
-        GROUP BY lr.resident_nik, lr.resident_name
-        HAVING total > 1
-        ORDER BY total DESC
-        LIMIT 10";
-$stmt = $pdo->prepare($sql);
-$stmt->execute($params);
-$top_requesters = $stmt->fetchAll();
+// Daily trend for laporan
+$daily_trend = [];
+foreach ($laporans as $lap) {
+    $date = substr($lap['tanggal'] ?? '', 0, 10);
+    $daily_trend[$date] = ($daily_trend[$date] ?? 0) + 1;
+}
+ksort($daily_trend);
 
 $flash = flash_get();
 ?>
@@ -139,7 +90,7 @@ $flash = flash_get();
 
   <section class="content">
     <div class="page-header">
-      <h1>📊 Laporan Administrasi Surat</h1>
+      <h1>Recap & Pelaporan Masalah</h1>
     </div>
 
     <?php if ($flash): ?>
@@ -170,8 +121,6 @@ $flash = flash_get();
         </div>
 
         <button type="submit" class="btn btn-primary">Tampilkan</button>
-        <a href="?p=export_report&period=<?= h($period) ?>&date_from=<?= h($date_from) ?>&date_to=<?= h($date_to) ?>&format=excel" class="btn btn-success">📥 Export Excel</a>
-        <a href="?p=export_report&period=<?= h($period) ?>&date_from=<?= h($date_from) ?>&date_to=<?= h($date_to) ?>&format=pdf" class="btn btn-danger">📄 Export PDF</a>
       </form>
     </div>
 
@@ -179,175 +128,148 @@ $flash = flash_get();
       Periode: <strong><?= date('d/m/Y', strtotime($date_from)) ?></strong> s/d <strong><?= date('d/m/Y', strtotime($date_to)) ?></strong>
     </div>
 
-    <!-- Statistik Cards -->
-    <div class="cards">
-      <div class="card report-card">
-        <div class="card-title">📨 Total Permintaan</div>
-        <div class="card-value"><?= intval($stats['total_requests']) ?></div>
-        <div class="card-desc">Permintaan masuk dalam periode</div>
-      </div>
-
-      <div class="card report-card">
-        <div class="card-title">⏳ Pending</div>
-        <div class="card-value"><?= intval($stats['by_status']['pending'] ?? 0) ?></div>
-        <div class="card-desc">Menunggu diproses</div>
-      </div>
-
-      <div class="card report-card">
-        <div class="card-title">✅ Selesai</div>
-        <div class="card-value"><?= intval($stats['total_issued']) ?></div>
-        <div class="card-desc">Surat telah diterbitkan</div>
-      </div>
-
-      <div class="card report-card">
-        <div class="card-title">⏱️ Rata-rata Proses</div>
-        <div class="card-value"><?= $stats['avg_processing_days'] ?> hari</div>
-        <div class="card-desc"><?= $stats['avg_processing_hours'] ?> jam</div>
-      </div>
-    </div>
-
-    <!-- Status Breakdown -->
+      <!-- Detail Pelaporan Masalah -->
     <div class="report-section">
-      <h3>📋 Rincian Status Permintaan</h3>
-      <div class="status-breakdown">
-        <?php
-        $status_labels = [
-            'pending' => ['Pending', '#fbbf24'],
-            'verifikasi' => ['Verifikasi', '#60a5fa'],
-            'approved' => ['Disetujui', '#34d399'],
-            'processing' => ['Diproses', '#a78bfa'],
-            'finished' => ['Selesai', '#10b981'],
-            'rejected' => ['Ditolak', '#f87171']
-        ];
-        foreach ($status_labels as $status => $info):
-            $count = $stats['by_status'][$status] ?? 0;
-            $percentage = $stats['total_requests'] > 0 ? round(($count / $stats['total_requests']) * 100, 1) : 0;
-        ?>
-        <div class="status-item">
-          <div class="status-bar-container">
-            <div class="status-label"><?= h($info[0]) ?></div>
-            <div class="status-bar">
-              <div class="status-bar-fill" style="width: <?= $percentage ?>%; background: <?= $info[1] ?>"></div>
-            </div>
-            <div class="status-count"><?= $count ?> (<?= $percentage ?>%)</div>
-          </div>
-        </div>
-        <?php endforeach; ?>
-      </div>
-    </div>
-
-    <!-- Laporan per Jenis Surat -->
-    <div class="report-row">
-      <div class="report-section report-half">
-        <h3>📝 Permintaan per Jenis Surat</h3>
-        <div class="table-responsive">
-          <table class="data-table compact">
-            <thead>
-              <tr>
-                <th>No</th>
-                <th>Jenis Surat</th>
-                <th>Kode</th>
-                <th>Jumlah</th>
-              </tr>
-            </thead>
-            <tbody>
-              <?php if (empty($by_template)): ?>
-              <tr><td colspan="4" class="text-center">Tidak ada data</td></tr>
-              <?php else: ?>
-                <?php foreach ($by_template as $i => $t): ?>
-                <tr>
-                  <td><?= $i + 1 ?></td>
-                  <td><?= h($t['name']) ?></td>
-                  <td><?= h($t['code']) ?></td>
-                  <td><strong><?= $t['total'] ?></strong></td>
-                </tr>
-                <?php endforeach; ?>
-              <?php endif; ?>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <div class="report-section report-half">
-        <h3>✅ Surat Diterbitkan per Jenis</h3>
-        <div class="table-responsive">
-          <table class="data-table compact">
-            <thead>
-              <tr>
-                <th>No</th>
-                <th>Jenis Surat</th>
-                <th>Kode</th>
-                <th>Jumlah</th>
-              </tr>
-            </thead>
-            <tbody>
-              <?php if (empty($issued_by_template)): ?>
-              <tr><td colspan="4" class="text-center">Tidak ada data</td></tr>
-              <?php else: ?>
-                <?php foreach ($issued_by_template as $i => $t): ?>
-                <tr>
-                  <td><?= $i + 1 ?></td>
-                  <td><?= h($t['name']) ?></td>
-                  <td><?= h($t['code']) ?></td>
-                  <td><strong><?= $t['total'] ?></strong></td>
-                </tr>
-                <?php endforeach; ?>
-              <?php endif; ?>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <!-- Trend Chart -->
-    <?php if (!empty($daily_trend)): ?>
-    <div class="report-section">
-      <h3>📈 Trend Permintaan Harian</h3>
-      <div class="chart-container">
-        <?php
-        $max_count = max(array_column($daily_trend, 'count'));
-        foreach ($daily_trend as $day):
-            $height = $max_count > 0 ? ($day['count'] / $max_count) * 100 : 0;
-        ?>
-        <div class="chart-bar-wrapper">
-          <div class="chart-bar" style="height: <?= $height ?>%">
-            <span class="bar-value"><?= $day['count'] ?></span>
-          </div>
-          <div class="chart-label"><?= date('d/m', strtotime($day['date'])) ?></div>
-        </div>
-        <?php endforeach; ?>
-      </div>
-    </div>
-    <?php endif; ?>
-
-    <!-- Top Requesters -->
-    <?php if (!empty($top_requesters)): ?>
-    <div class="report-section">
-      <h3>👥 Pemohon Terbanyak</h3>
+      <h3>📋 Detail Pelaporan Masalah</h3>
       <div class="table-responsive">
         <table class="data-table compact">
           <thead>
             <tr>
               <th>No</th>
-              <th>NIK</th>
-              <th>Nama</th>
-              <th>Jumlah Permintaan</th>
+              <th>Nomor Laporan</th>
+              <th>Tanggal</th>
+              <th>Kategori</th>
+              <th>Deskripsi</th>
+              <th>File</th>
+              <th>Aksi</th>
             </tr>
           </thead>
           <tbody>
-            <?php foreach ($top_requesters as $i => $r): ?>
-            <tr>
-              <td><?= $i + 1 ?></td>
-              <td><?= h($r['resident_nik']) ?></td>
-              <td><?= h($r['resident_name']) ?></td>
-              <td><strong><?= $r['total'] ?></strong></td>
-            </tr>
-            <?php endforeach; ?>
+            <?php if (empty($laporans)): ?>
+            <tr><td colspan="7" class="text-center">Tidak ada data</td></tr>
+            <?php else: ?>
+              <?php foreach ($laporans as $i => $lap): ?>
+              <?php
+                $kategori = strtoupper(trim($lap['kategori_permasalahan'] ?? 'Lainnya'));
+                $badge_class = 'badge-gray';
+                
+                if (strpos($kategori, 'DOKUMEN') !== false) {
+                    $badge_class = 'badge-blue';
+                } elseif (strpos($kategori, 'TEKNIS') !== false) {
+                    $badge_class = 'badge-orange';
+                } elseif (strpos($kategori, 'ADMINISTRASI') !== false || strpos($kategori, 'LAYANAN') !== false) {
+                    $badge_class = 'badge-purple';
+                } elseif (strpos($kategori, 'PENGADUAN') !== false) {
+                    $badge_class = 'badge-red';
+                } elseif (strpos($kategori, 'INFORMASI') !== false) {
+                    $badge_class = 'badge-green';
+                }
+              ?>
+              <tr>
+                <td><?= $i + 1 ?></td>
+                <td><?= h($lap['nomor_laporan']) ?></td>
+                <td><?= date('d/m/Y', strtotime($lap['tanggal'])) ?></td>
+                <td><span class="badge <?= $badge_class ?>"><?= h($lap['kategori_permasalahan'] ?? 'Lainnya') ?></span></td>
+                <td style="max-width: 300px;"><?= h(substr($lap['description'] ?? '-', 0, 80)) ?><?= strlen($lap['description'] ?? '') > 80 ? '...' : '' ?></td>
+                <td>
+                  <?php if (!empty($lap['file_url'])): ?>
+                  <a href="<?= h($lap['file_url']) ?>" target="_blank" class="btn-icon-action btn-icon-view" title="Lihat File">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                      <path d="M5 4a.5.5 0 0 0 0 1h6a.5.5 0 0 0 0-1H5zm-.5 2.5A.5.5 0 0 1 5 6h6a.5.5 0 0 1 0 1H5a.5.5 0 0 1-.5-.5zM5 8a.5.5 0 0 0 0 1h6a.5.5 0 0 0 0-1H5zm0 2a.5.5 0 0 0 0 1h3a.5.5 0 0 0 0-1H5z"/>
+                      <path d="M2 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2zm10-1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1z"/>
+                    </svg>
+                  </a>
+                  <?php else: ?>
+                  <span style="color:#999;">-</span>
+                  <?php endif; ?>
+                </td>
+                <td>
+                  <button onclick="confirmDelete('<?= h($lap['id']) ?>', '<?= h($lap['nomor_laporan']) ?>')" class="btn-icon-action" title="Hapus">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                      <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/>
+                      <path fill-rule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"/>
+                    </svg>
+                  </button>
+                </td>
+              </tr>
+              <?php endforeach; ?>
+            <?php endif; ?>
           </tbody>
         </table>
       </div>
     </div>
-    <?php endif; ?>
+
+    <!-- Statistik Cards -->
+    <div class="cards">
+    <div class="card report-card">
+      <div class="card-title">📝 Pelaporan Masalah</div>
+      <div class="card-value"><?= $stats['total_laporan'] ?></div>
+      <div class="card-desc">Laporan masuk</div>
+    </div>
+    
+      <div class="card report-card">
+        <div class="card-title">📋 Total Semua</div>
+        <div class="card-value"><?= $stats['total_semua'] ?></div>
+        <div class="card-desc">Laporan, SPPD & Undangan</div>
+      </div>
+
+      <div class="card report-card">
+        <div class="card-title">✈️ SPPD</div>
+        <div class="card-value"><?= $stats['total_sppd'] ?></div>
+        <div class="card-desc">Surat Perintah/Tugas</div>
+      </div>
+
+      <div class="card report-card">
+        <div class="card-title">📨 Undangan</div>
+        <div class="card-value"><?= $stats['total_undangan'] ?></div>
+        <div class="card-desc">Surat Undangan</div>
+      </div>
+    </div>
+
+    <!-- Laporan per Kategori & List -->
+    <div class="report-row">
+      <div class="report-section report-half">
+        <h3>📊 Pelaporan per Kategori</h3>
+        <div class="table-responsive">
+          <table class="data-table compact">
+            <thead>
+              <tr>
+                <th>No</th>
+                <th>Kategori</th>
+                <th>Jumlah</th>
+              </tr>
+            </thead>
+            <tbody>
+              <?php if (empty($by_category)): ?>
+              <tr><td colspan="3" class="text-center">Tidak ada data</td></tr>
+              <?php else: ?>
+                <?php $no = 1; foreach ($by_category as $cat => $count): ?>
+                <tr>
+                  <td><?= $no++ ?></td>
+                  <td><?= h($cat) ?></td>
+                  <td><strong><?= $count ?></strong></td>
+                </tr>
+                <?php endforeach; ?>
+              <?php endif; ?>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- <div class="report-section report-half">
+        <h3>📄 SPPD & Undangan</h3>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px;">
+          <div style="text-align: center; padding: 20px; background: #f0f8ff; border-radius: 8px;">
+            <div style="font-size: 36px; color: #4a7c2c; font-weight: bold;"><?= $stats['total_sppd'] ?></div>
+            <div style="color: #666; margin-top: 8px;">Surat SPPD</div>
+          </div>
+          <div style="text-align: center; padding: 20px; background: #fff0f0; border-radius: 8px;">
+            <div style="font-size: 36px; color: #4a7c2c; font-weight: bold;"><?= $stats['total_undangan'] ?></div>
+            <div style="color: #666; margin-top: 8px;">Surat Undangan</div>
+          </div>
+        </div>
+      </div> -->
+    </div>
 
   </section>
 </div>
@@ -358,6 +280,70 @@ function toggleCustomDate() {
   const customDates = document.getElementById('custom-dates');
   customDates.style.display = period === 'custom' ? 'flex' : 'none';
 }
+
+function confirmDelete(id, nomor) {
+  if (confirm(`Apakah Anda yakin ingin menghapus laporan ${nomor}?\n\nData yang dihapus tidak dapat dikembalikan.`)) {
+    window.location.href = `?p=reports_delete&id=${id}&period=<?= h($period) ?>&date_from=<?= h($date_from) ?>&date_to=<?= h($date_to) ?>`;
+  }
+}
 </script>
+
+<style>
+.badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+}
+.badge-blue {
+  background: #e3f2fd;
+  color: #1976d2;
+}
+.badge-orange {
+  background: #fff3e0;
+  color: #f57c00;
+}
+.badge-purple {
+  background: #f3e5f5;
+  color: #7b1fa2;
+}
+.badge-red {
+  background: #ffebee;
+  color: #c62828;
+}
+.badge-green {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+.badge-gray {
+  background: #f5f5f5;
+  color: #616161;
+}
+.btn-icon-action {
+  background: #e63939;
+  color: white;
+  border: none;
+  cursor: pointer;
+  padding: 8px 12px;
+  font-size: 18px;
+  border-radius: 6px;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.btn-icon-action:hover {
+  background: #d32f2f;
+  transform: scale(1.1);
+}
+.btn-icon-view {
+  background: #64B5F6;
+  text-decoration: none;
+}
+.btn-icon-view:hover {
+  background: #42A5F5;
+}
+</style>
 </body>
 </html>

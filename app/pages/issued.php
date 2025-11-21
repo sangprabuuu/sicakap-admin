@@ -1,61 +1,95 @@
 <?php
-$pdo = db();
 $user = current_user();
 
-// Pagination
+// Ambil data pengajuan yang sudah selesai dari Supabase
+$endpoint = 'pengajuan_dokumen?select=*&order=created_at.desc';
+
+// Search by nama atau NIK
+$search = $_GET['search'] ?? '';
+if ($search) {
+    $endpoint .= "&or=(nama.ilike.*$search*,nik.ilike.*$search*,nomor_pengajuan.ilike.*$search*)";
+}
+
+$result = supabase_request('GET', $endpoint);
+$all_requests = ($result['code'] === 200 && !empty($result['data'])) ? $result['data'] : [];
+
+// Debug mode
+if (isset($_GET['debug'])) {
+    echo '<pre style="background:#f5f5f5;padding:20px;margin:20px;border:1px solid #ccc;">';
+    echo "Total Pengajuan: " . count($all_requests) . "\n\n";
+}
+
+// Ambil semua status dari tabel riwayat
+$status_map = [];
+if (!empty($all_requests)) {
+    $all_riwayat_endpoint = "riwayat?select=pengajuan_id,status,created_at&order=created_at.desc";
+    $all_riwayat_result = supabase_request('GET', $all_riwayat_endpoint);
+    
+    if ($all_riwayat_result['code'] === 200 && !empty($all_riwayat_result['data'])) {
+        foreach ($all_riwayat_result['data'] as $riwayat) {
+            $pid = $riwayat['pengajuan_id'];
+            if (!isset($status_map[$pid])) {
+                $status_map[$pid] = $riwayat['status'];
+            }
+        }
+        
+        if (isset($_GET['debug'])) {
+            echo "Total Riwayat: " . count($all_riwayat_result['data']) . "\n";
+            echo "Status Map:\n";
+            print_r($status_map);
+        }
+    }
+    
+    // Set status dan filter hanya yang selesai
+    $requests = [];
+    foreach ($all_requests as $req) {
+        $req['status'] = $status_map[$req['id']] ?? 'Diajukan';
+        if ($req['status'] === 'Selesai') {
+            $requests[] = $req;
+        }
+    }
+    
+    if (isset($_GET['debug'])) {
+        echo "\nTotal Selesai: " . count($requests) . "\n";
+        echo '</pre>';
+    }
+} else {
+    $requests = [];
+}
+
+// Hitung statistik
+$total = count($requests);
+
+// Filter hari ini
+$today = date('Y-m-d');
+$today_count = 0;
+foreach ($requests as $req) {
+    if (date('Y-m-d', strtotime($req['created_at'])) === $today) {
+        $today_count++;
+    }
+}
+
+// Filter bulan ini
+$this_month = date('Y-m');
+$month_count = 0;
+foreach ($requests as $req) {
+    if (date('Y-m', strtotime($req['created_at'])) === $this_month) {
+        $month_count++;
+    }
+}
+
+$stats = [
+    'total' => $total,
+    'today' => $today_count,
+    'this_month' => $month_count,
+];
+
+// Pagination manual
 $page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
 $limit = 20;
-$offset = ($page - 1) * $limit;
-
-// Search
-$search = $_GET['search'] ?? '';
-
-$where = [];
-$params = [];
-
-if ($search) {
-    $where[] = "(il.letter_no LIKE :search OR lr.resident_nik LIKE :search OR lr.resident_name LIKE :search)";
-    $params[':search'] = "%$search%";
-}
-
-$where_sql = $where ? ' WHERE ' . implode(' AND ', $where) : '';
-
-// Count total
-$count_sql = "SELECT COUNT(*) 
-              FROM issued_letters il
-              LEFT JOIN letter_requests lr ON il.request_id = lr.id
-              {$where_sql}";
-$stmt = $pdo->prepare($count_sql);
-$stmt->execute($params);
-$total = $stmt->fetchColumn();
 $total_pages = ceil($total / $limit);
-
-// Get issued letters
-$sql = "SELECT il.*, 
-               lr.resident_nik, lr.resident_name, lr.no_request,
-               lt.name as template_name, lt.code as template_code
-        FROM issued_letters il
-        LEFT JOIN letter_requests lr ON il.request_id = lr.id
-        LEFT JOIN letter_templates lt ON il.template_id = lt.id
-        {$where_sql}
-        ORDER BY il.issued_at DESC, il.created_at DESC
-        LIMIT :limit OFFSET :offset";
-
-$stmt = $pdo->prepare($sql);
-foreach ($params as $key => $val) {
-    $stmt->bindValue($key, $val);
-}
-$stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
-$stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
-$stmt->execute();
-$letters = $stmt->fetchAll();
-
-// Get statistics
-$stats = [
-    'total' => $pdo->query("SELECT COUNT(*) FROM issued_letters")->fetchColumn(),
-    'today' => $pdo->query("SELECT COUNT(*) FROM issued_letters WHERE DATE(issued_at) = CURDATE()")->fetchColumn(),
-    'this_month' => $pdo->query("SELECT COUNT(*) FROM issued_letters WHERE MONTH(issued_at) = MONTH(CURDATE()) AND YEAR(issued_at) = YEAR(CURDATE())")->fetchColumn(),
-];
+$offset = ($page - 1) * $limit;
+$letters = array_slice($requests, $offset, $limit);
 
 $flash = flash_get();
 ?>
@@ -79,7 +113,7 @@ $flash = flash_get();
   </header>
 
   <section class="content">
-    <h1>Surat Selesai</h1>
+    <h1>Dokumen Selesai</h1>
 
     <?php if ($flash): ?>
     <div class="alert alert-success"><?= h($flash) ?></div>
@@ -89,19 +123,19 @@ $flash = flash_get();
     <div class="cards">
       <div class="card">
         <div class="card-title">Total Surat</div>
-        <div class="card-value"><?= intval($stats['total']) ?></div>
+        <div class="card-value" style="color: #000;"><?= intval($stats['total']) ?></div>
         <div class="card-desc">Surat yang telah diterbitkan</div>
       </div>
 
       <div class="card">
         <div class="card-title">Hari Ini</div>
-        <div class="card-value"><?= intval($stats['today']) ?></div>
+        <div class="card-value" style="color: #000;"><?= intval($stats['today']) ?></div>
         <div class="card-desc">Surat diterbitkan hari ini</div>
       </div>
 
       <div class="card">
         <div class="card-title">Bulan Ini</div>
-        <div class="card-value"><?= intval($stats['this_month']) ?></div>
+        <div class="card-value" style="color: #000;"><?= intval($stats['this_month']) ?></div>
         <div class="card-desc">Surat diterbitkan bulan ini</div>
       </div>
     </div>
@@ -131,10 +165,10 @@ $flash = flash_get();
             <th>No</th>
             <th>No. Surat</th>
             <th>Tanggal Terbit</th>
-            <th>No. Request</th>
             <th>NIK</th>
             <th>Nama Pemohon</th>
-            <th>Jenis Surat</th>
+            <th>Jenis Dokumen</th>
+            <th>Alamat</th>
             <th>Aksi</th>
           </tr>
         </thead>
@@ -147,39 +181,29 @@ $flash = flash_get();
             <?php foreach ($letters as $i => $letter): ?>
             <tr>
               <td><?= $offset + $i + 1 ?></td>
-              <td><strong><?= h($letter['letter_no'] ?? '-') ?></strong></td>
-              <td>
-                <?php
-                if ($letter['issued_at']) {
-                    echo date('d/m/Y H:i', strtotime($letter['issued_at']));
-                } else {
-                    echo date('d/m/Y', strtotime($letter['created_at']));
-                }
-                ?>
-              </td>
-              <td><?= h($letter['no_request'] ?? '-') ?></td>
-              <td><?= h($letter['resident_nik'] ?? '-') ?></td>
-              <td><?= h($letter['resident_name'] ?? '-') ?></td>
-              <td><?= h($letter['template_name'] ?? $letter['template_code'] ?? 'Template #' . $letter['template_id']) ?></td>
+              <td><strong><?= h($letter['nomor_pengajuan'] ?? '-') ?></strong></td>
+              <td><?= date('d/m/Y', strtotime($letter['created_at'])) ?></td>
+              <td><?= h($letter['nik']) ?></td>
+              <td><?= h($letter['nama']) ?></td>
+              <td><?= h($letter['jenis_dokumen']) ?></td>
+              <td><?= h($letter['alamat']) ?></td>
               <td class="actions">
-                <?php if ($letter['generated_pdf']): ?>
-                  <a href="<?= h(rtrim(APP_URL, '/')) ?>/app/generated/<?= h($letter['generated_pdf']) ?>" 
-                     class="btn-small btn-info" 
-                     target="_blank" 
-                     title="Lihat PDF">
-                    📄 PDF
-                  </a>
-                <?php else: ?>
-                  <a href="?p=generate_pdf&request_id=<?= $letter['request_id'] ?>" 
-                     class="btn-small btn-secondary" 
-                     title="Generate PDF">
-                    Generate
-                  </a>
-                <?php endif; ?>
-                <a href="?p=request_detail&id=<?= $letter['request_id'] ?>" 
-                   class="btn-small btn-light" 
-                   title="Lihat Detail Request">
-                  Detail
+                <a href="?p=print_surat&id=<?= h($letter['id']) ?>" 
+                   class="btn btn-sm btn-secondary" 
+                   target="_blank" 
+                   title="Download PDF">
+                  <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
+                    <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
+                  </svg>
+                </a>
+                <a href="?p=request_detail&id=<?= h($letter['id']) ?>" 
+                   class="btn btn-sm btn-primary" 
+                   title="Lihat Detail">
+                  <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492zM5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0z"/>
+                    <path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8zM1.173 8a13.133 13.133 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.133 13.133 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5c-2.12 0-3.879-1.168-5.168-2.457A13.134 13.134 0 0 1 1.172 8z"/>
+                  </svg>
                 </a>
               </td>
             </tr>

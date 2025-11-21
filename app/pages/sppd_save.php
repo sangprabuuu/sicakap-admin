@@ -12,6 +12,7 @@ $nomor_sppd = trim($_POST['nomor_sppd'] ?? '');
 $nama_pegawai = trim($_POST['nama_pegawai'] ?? '');
 $nip = trim($_POST['nip'] ?? '');
 $jabatan = trim($_POST['jabatan'] ?? '');
+$alamat_tempat_tinggal = trim($_POST['alamat_tempat_tinggal'] ?? '');
 $maksud_perjalanan = trim($_POST['maksud_perjalanan'] ?? '');
 $tempat_tujuan = trim($_POST['tempat_tujuan'] ?? '');
 $jenis_durasi = $_POST['jenis_durasi'] ?? '';
@@ -19,7 +20,7 @@ $tanggal_mulai = $_POST['tanggal_mulai'] ?? '';
 $tanggal_selesai = $_POST['tanggal_selesai'] ?? '';
 
 // Validasi
-if (!$tanggal_pembuatan || !$nomor_sppd || !$nama_pegawai || !$nip || !$jabatan || !$maksud_perjalanan || !$tempat_tujuan || !$jenis_durasi || !$tanggal_mulai || !$tanggal_selesai) {
+if (!$tanggal_pembuatan || !$nomor_sppd || !$nama_pegawai || !$nip || !$jabatan || !$alamat_tempat_tinggal || !$maksud_perjalanan || !$tempat_tujuan || !$jenis_durasi || !$tanggal_mulai || !$tanggal_selesai) {
     flash_set('Semua field harus diisi');
     header('Location: ' . APP_URL . '/' . ($id ? "?p=sppd_form&id=$id" : '?p=sppd_form'));
     exit;
@@ -33,6 +34,7 @@ if ($id) {
         'nama_pegawai' => $nama_pegawai,
         'nip' => $nip,
         'jabatan' => $jabatan,
+        'alamat_tempat_tinggal' => $alamat_tempat_tinggal,
         'maksud_perjalanan' => $maksud_perjalanan,
         'tempat_tujuan' => $tempat_tujuan,
         'jenis_durasi' => $jenis_durasi,
@@ -55,6 +57,7 @@ if ($id) {
         'nama_pegawai' => $nama_pegawai,
         'nip' => $nip,
         'jabatan' => $jabatan,
+        'alamat_tempat_tinggal' => $alamat_tempat_tinggal,
         'maksud_perjalanan' => $maksud_perjalanan,
         'tempat_tujuan' => $tempat_tujuan,
         'jenis_durasi' => $jenis_durasi,

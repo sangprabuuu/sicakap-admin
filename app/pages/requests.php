@@ -24,18 +24,30 @@ if (isset($_GET['debug'])) {
 
 $requests = ($result['code'] === 200 && !empty($result['data'])) ? $result['data'] : [];
 
-// Ambil status dari tabel riwayat untuk setiap pengajuan
+// Ambil semua status terbaru dari tabel riwayat dalam 1 query
+$status_map = [];
 if (!empty($requests)) {
-    foreach ($requests as &$req) {
-        // Query status terbaru dari tabel riwayat berdasarkan pengajuan_id
-        $status_endpoint = "riwayat?select=status&pengajuan_id=eq." . $req['id'] . "&order=created_at.desc&limit=1";
-        $status_result = supabase_request('GET', $status_endpoint);
-        
-        if ($status_result['code'] === 200 && !empty($status_result['data'])) {
-            $req['status'] = $status_result['data'][0]['status'] ?? 'Diajukan';
-        } else {
-            $req['status'] = 'Diajukan';
+    // Ambil semua ID pengajuan
+    $pengajuan_ids = array_column($requests, 'id');
+    
+    // Query semua riwayat untuk pengajuan-pengajuan ini
+    $all_riwayat_endpoint = "riwayat?select=pengajuan_id,status,created_at&order=created_at.desc";
+    $all_riwayat_result = supabase_request('GET', $all_riwayat_endpoint);
+    
+    if ($all_riwayat_result['code'] === 200 && !empty($all_riwayat_result['data'])) {
+        // Group by pengajuan_id dan ambil status terbaru
+        foreach ($all_riwayat_result['data'] as $riwayat) {
+            $pid = $riwayat['pengajuan_id'];
+            // Hanya simpan status pertama (terbaru) untuk setiap pengajuan_id
+            if (!isset($status_map[$pid])) {
+                $status_map[$pid] = $riwayat['status'];
+            }
         }
+    }
+    
+    // Set status ke setiap request
+    foreach ($requests as &$req) {
+        $req['status'] = $status_map[$req['id']] ?? 'Diajukan';
     }
     unset($req); // break reference
 }
@@ -191,8 +203,8 @@ $flash = flash_get();
                     <path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8zM1.173 8a13.133 13.133 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.133 13.133 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5c-2.12 0-3.879-1.168-5.168-2.457A13.134 13.134 0 0 1 1.172 8z"/>
                   </svg>
                 </a>
-                <?php if (($req['status'] ?? 'Diajukan') === 'Selesai' && !empty($req['file_url'])): ?>
-                  <a href="<?= h($req['file_url']) ?>" target="_blank" class="btn btn-sm btn-secondary" title="Download">
+                <?php if (($req['status'] ?? 'Diajukan') === 'Selesai'): ?>
+                  <a href="?p=print_surat&id=<?= h($req['id']) ?>" target="_blank" class="btn btn-sm btn-secondary" title="Download">
                     <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
                       <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
                       <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>

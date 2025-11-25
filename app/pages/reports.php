@@ -89,40 +89,40 @@ $flash = flash_get();
   </header>
 
   <section class="content">
-    <div class="page-header">
+    <div class="page-header-with-filter">
       <h1>Recap & Pelaporan Masalah</h1>
+      
+      <!-- Filter Periode -->
+      <div class="report-filter-inline">
+        <form method="get" class="filter-form-inline">
+          <input type="hidden" name="p" value="reports">
+          
+          <div class="filter-group-inline">
+            <label>Periode:</label>
+            <select name="period" id="period" onchange="toggleCustomDate()">
+              <option value="today" <?= $period == 'today' ? 'selected' : '' ?>>Hari Ini</option>
+              <option value="week" <?= $period == 'week' ? 'selected' : '' ?>>7 Hari Terakhir</option>
+              <option value="month" <?= $period == 'month' ? 'selected' : '' ?>>Bulan Ini</option>
+              <option value="year" <?= $period == 'year' ? 'selected' : '' ?>>Tahun Ini</option>
+              <option value="custom" <?= $period == 'custom' ? 'selected' : '' ?>>Custom</option>
+            </select>
+          </div>
+
+          <div class="filter-group-inline custom-dates-inline" id="custom-dates" style="<?= $period != 'custom' ? 'display:none' : 'display:flex' ?>">
+            <label>Dari:</label>
+            <input type="date" name="date_from" value="<?= h($date_from) ?>">
+            <label>Sampai:</label>
+            <input type="date" name="date_to" value="<?= h($date_to) ?>">
+          </div>
+
+          <button type="submit" class="btn btn-primary">Tampilkan</button>
+        </form>
+      </div>
     </div>
 
     <?php if ($flash): ?>
     <div class="alert alert-success"><?= h($flash) ?></div>
     <?php endif; ?>
-
-    <!-- Filter Periode -->
-    <div class="report-filter">
-      <form method="get" class="filter-form">
-        <input type="hidden" name="p" value="reports">
-        
-        <div class="filter-group">
-          <label>Periode:</label>
-          <select name="period" id="period" onchange="toggleCustomDate()">
-            <option value="today" <?= $period == 'today' ? 'selected' : '' ?>>Hari Ini</option>
-            <option value="week" <?= $period == 'week' ? 'selected' : '' ?>>7 Hari Terakhir</option>
-            <option value="month" <?= $period == 'month' ? 'selected' : '' ?>>Bulan Ini</option>
-            <option value="year" <?= $period == 'year' ? 'selected' : '' ?>>Tahun Ini</option>
-            <option value="custom" <?= $period == 'custom' ? 'selected' : '' ?>>Custom</option>
-          </select>
-        </div>
-
-        <div class="filter-group" id="custom-dates" style="<?= $period != 'custom' ? 'display:none' : '' ?>">
-          <label>Dari:</label>
-          <input type="date" name="date_from" value="<?= h($date_from) ?>">
-          <label>Sampai:</label>
-          <input type="date" name="date_to" value="<?= h($date_to) ?>">
-        </div>
-
-        <button type="submit" class="btn btn-primary">Tampilkan</button>
-      </form>
-    </div>
 
     <div class="report-period-info">
       Periode: <strong><?= date('d/m/Y', strtotime($date_from)) ?></strong> s/d <strong><?= date('d/m/Y', strtotime($date_to)) ?></strong>
@@ -130,7 +130,7 @@ $flash = flash_get();
 
       <!-- Detail Pelaporan Masalah -->
     <div class="report-section">
-      <h3>📋 Detail Pelaporan Masalah</h3>
+      <h3> Detail Pelaporan Masalah</h3>
       <div class="table-responsive">
         <table class="data-table compact">
           <thead>
@@ -202,25 +202,25 @@ $flash = flash_get();
     <!-- Statistik Cards -->
     <div class="cards">
     <div class="card report-card">
-      <div class="card-title">📝 Pelaporan Masalah</div>
+      <div class="card-title"> Pelaporan Masalah</div>
       <div class="card-value"><?= $stats['total_laporan'] ?></div>
       <div class="card-desc">Laporan masuk</div>
     </div>
     
       <div class="card report-card">
-        <div class="card-title">📋 Total Semua</div>
+        <div class="card-title"> Total Semua</div>
         <div class="card-value"><?= $stats['total_semua'] ?></div>
         <div class="card-desc">Laporan, SPPD & Undangan</div>
       </div>
 
       <div class="card report-card">
-        <div class="card-title">✈️ SPPD</div>
+        <div class="card-title"> SPPD</div>
         <div class="card-value"><?= $stats['total_sppd'] ?></div>
         <div class="card-desc">Surat Perintah/Tugas</div>
       </div>
 
       <div class="card report-card">
-        <div class="card-title">📨 Undangan</div>
+        <div class="card-title"> Undangan</div>
         <div class="card-value"><?= $stats['total_undangan'] ?></div>
         <div class="card-desc">Surat Undangan</div>
       </div>
@@ -229,7 +229,7 @@ $flash = flash_get();
     <!-- Laporan per Kategori & List -->
     <div class="report-row">
       <div class="report-section report-half">
-        <h3>📊 Pelaporan per Kategori</h3>
+        <h3> Pelaporan per Kategori</h3>
         <div class="table-responsive">
           <table class="data-table compact">
             <thead>
@@ -278,7 +278,11 @@ $flash = flash_get();
 function toggleCustomDate() {
   const period = document.getElementById('period').value;
   const customDates = document.getElementById('custom-dates');
-  customDates.style.display = period === 'custom' ? 'flex' : 'none';
+  if (period === 'custom') {
+    customDates.style.display = 'flex';
+  } else {
+    customDates.style.display = 'none';
+  }
 }
 
 function confirmDelete(id, nomor) {
@@ -289,6 +293,90 @@ function confirmDelete(id, nomor) {
 </script>
 
 <style>
+.page-header-with-filter {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.page-header-with-filter h1 {
+  margin: 0;
+  font-size: 35px;
+  color: #333;
+}
+
+.report-filter-inline {
+  background: white;
+  padding: 12px 16px;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+}
+
+.filter-form-inline {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.filter-group-inline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.filter-group-inline label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #555;
+  white-space: nowrap;
+}
+
+.filter-group-inline select,
+.filter-group-inline input[type="date"] {
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 13px;
+  background: white;
+  transition: all 0.2s;
+}
+
+.filter-group-inline select {
+  min-width: 150px;
+  cursor: pointer;
+}
+
+.filter-group-inline input[type="date"] {
+  min-width: 140px;
+}
+
+.filter-group-inline select:focus,
+.filter-group-inline input[type="date"]:focus {
+  outline: none;
+  border-color: #17622a;
+  box-shadow: 0 0 0 2px rgba(23, 98, 42, 0.1);
+}
+
+.custom-dates-inline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-left: 12px;
+  border-left: 1px solid #e0e0e0;
+}
+
+.filter-form-inline .btn-primary {
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
 .badge {
   display: inline-block;
   padding: 4px 10px;

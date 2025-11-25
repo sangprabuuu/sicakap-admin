@@ -2,25 +2,28 @@
 $user = current_user();
 
 // Query Supabase untuk data statistik
-$pengajuan_endpoint = 'pengajuan_dokumen?select=id';
-$pengajuan_response = supabase_request('GET', $pengajuan_endpoint);
-$total_pengajuan = !empty($pengajuan_response['data']) ? count($pengajuan_response['data']) : 0;
 
-// Hitung dokumen selesai dari tabel riwayat
-$selesai_endpoint = 'riwayat?status=eq.Selesai&select=id';
-$selesai_response = supabase_request('GET', $selesai_endpoint);
-$surat_selesai = !empty($selesai_response['data']) ? count($selesai_response['data']) : 0;
+// Total pengajuan dokumen dari halaman requests (pengajuan_dokumen)
+$pengajuan_result = supabase_request('GET', 'pengajuan_dokumen?select=id');
+$total_pengajuan = 0;
+if ($pengajuan_result['code'] === 200 && !empty($pengajuan_result['data'])) {
+    $total_pengajuan = count($pengajuan_result['data']);
+}
 
-// Hitung total laporan (SPPD + Undangan)
-$sppd_endpoint = 'pengajuan_sppd?select=id';
-$sppd_response = supabase_request('GET', $sppd_endpoint);
-$total_sppd = !empty($sppd_response['data']) ? count($sppd_response['data']) : 0;
+// Hitung dokumen selesai dari halaman issued
+$riwayat_result = supabase_request('GET', 'riwayat?status=eq.Selesai&select=pengajuan_id');
+$total_selesai = 0;
+if ($riwayat_result['code'] === 200 && !empty($riwayat_result['data'])) {
+    $pengajuan_ids = array_unique(array_column($riwayat_result['data'], 'pengajuan_id'));
+    $total_selesai = count($pengajuan_ids);
+}
 
-$undangan_endpoint = 'surat_undangan?select=id';
-$undangan_response = supabase_request('GET', $undangan_endpoint);
-$total_undangan = !empty($undangan_response['data']) ? count($undangan_response['data']) : 0;
-
-$total_laporan = $total_sppd + $total_undangan;
+// Hitung pelaporan masalah dari halaman reports
+$laporan_result = supabase_request('GET', 'pelaporan_masalah?select=id');
+$total_laporan = 0;
+if ($laporan_result['code'] === 200 && !empty($laporan_result['data'])) {
+    $total_laporan = count($laporan_result['data']);
+}
 ?>
 <!doctype html>
 <html lang="id">
@@ -51,20 +54,20 @@ $total_laporan = $total_sppd + $total_undangan;
     <div class="cards">
       <div class="card">
         <div class="card-title">Pengajuan Dokumen</div>
-        <div class="card-value"><?= intval($total_pengajuan) ?></div>
+        <div class="card-value"><?= $total_pengajuan ?></div>
         <div class="card-desc">Total pengajuan dokumen</div>
       </div>
 
       <div class="card">
         <div class="card-title">Dokumen Selesai</div>
-        <div class="card-value"><?= intval($surat_selesai) ?></div>
+        <div class="card-value"><?= $total_selesai ?></div>
         <div class="card-desc">Jumlah surat yang selesai dibuat</div>
       </div>
 
       <div class="card">
         <div class="card-title">Laporan</div>
-        <div class="card-value"><?= intval($total_laporan) ?></div>
-        <div class="card-desc">SPPD (<?= intval($total_sppd) ?>) & Undangan (<?= intval($total_undangan) ?>)</div>
+        <div class="card-value"><?= $total_laporan ?></div>
+        <div class="card-desc">Detail pelaporan masalah</div>
       </div>
     </div>
 

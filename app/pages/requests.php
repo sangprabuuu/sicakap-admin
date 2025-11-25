@@ -180,7 +180,18 @@ $flash = flash_get();
               <td><strong><?= h($req['nomor_pengajuan'] ?? '-') ?></strong></td>
               <td><?= date('d/m/Y', strtotime($req['created_at'])) ?></td>
               <td><?= h($req['nik']) ?></td>
-              <td><?= h($req['nama']) ?></td>
+              <td>
+                <?php 
+                // Debug: tampilkan data yang ada
+                $nama_tampil = '';
+                if (!empty($req['nama'])) {
+                    $nama_tampil = $req['nama'];
+                } elseif (!empty($req['nama_ortu'])) {
+                    $nama_tampil = $req['nama_ortu'];
+                } 
+                echo h($nama_tampil);
+                ?>
+              </td>
               <td><?= h($req['jenis_dokumen']) ?></td>
               <td><?= h($req['alamat']) ?></td>
               <td>

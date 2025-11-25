@@ -37,19 +37,34 @@ $base = rtrim(APP_URL, '/');
     .dropdown {
       position: relative;
     }
+    .dropdown-toggle {
+      display: block;
+      cursor: pointer;
+    }
     .dropdown-toggle::after {
       content: ' ▼';
       font-size: 10px;
       margin-left: 5px;
+      transition: transform 0.3s;
+    }
+    .dropdown.active .dropdown-toggle::after {
+      transform: rotate(180deg);
     }
     .dropdown-menu {
       display: none;
       list-style: none;
       padding-left: 20px;
       margin: 5px 0;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 4px;
+      padding: 8px 0 8px 20px;
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease;
     }
-    .dropdown:hover .dropdown-menu {
+    .dropdown.active .dropdown-menu {
       display: block;
+      max-height: 200px;
     }
     .dropdown-menu li {
       margin: 5px 0;
@@ -57,11 +72,27 @@ $base = rtrim(APP_URL, '/');
     .dropdown-menu a {
       font-size: 14px;
       opacity: 0.9;
+      display: block;
+      padding: 5px 10px;
+      transition: all 0.2s;
     }
     .dropdown-menu a:hover {
       opacity: 1;
-      padding-left: 5px;
-      transition: padding-left 0.2s;
+      padding-left: 15px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 4px;
     }
   </style>
+  
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const dropdown = document.querySelector('.dropdown');
+      const dropdownToggle = dropdown.querySelector('.dropdown-toggle');
+      
+      dropdownToggle.addEventListener('click', function(e) {
+        e.preventDefault();
+        dropdown.classList.toggle('active');
+      });
+    });
+  </script>
 </nav>

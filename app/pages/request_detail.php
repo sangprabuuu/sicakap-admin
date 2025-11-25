@@ -49,17 +49,279 @@ $flash = flash_get();
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Detail Permintaan - SiCakap</title>
   <link rel="stylesheet" href="<?= h(rtrim(APP_URL, '/')) ?>/assets/css/style.css">
-  <script>
-    function cetakDanSelesai(id) {
-      if (confirm('Tandai pengajuan ini sebagai selesai dan cetak surat?')) {
-        // Submit form selesai dulu
-        document.getElementById('formSelesai').submit();
-        
-        // Buka tab baru untuk print surat setelah submit
-        setTimeout(function() {
-          window.open('?p=print_surat&id=' + id, '_blank');
-        }, 500);
+  <style>
+    /* Custom Modal Dialog Styles */
+    .custom-confirm-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(4px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      animation: fadeIn 0.2s ease;
+    }
+    
+    .custom-confirm-overlay.active {
+      display: flex;
+    }
+    
+    .custom-confirm-box {
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      max-width: 440px;
+      width: 90%;
+      padding: 0;
+      animation: slideUp 0.3s ease;
+      overflow: hidden;
+    }
+    
+    .custom-confirm-header {
+      padding: 24px 28px 20px;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    
+    .custom-confirm-icon {
+      width: 56px;
+      height: 56px;
+      margin: 0 auto 16px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+    }
+    
+    .custom-confirm-icon.warning {
+      background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    }
+    
+    .custom-confirm-icon.success {
+      background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+    }
+    
+    .custom-confirm-icon.danger {
+      background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+    }
+    
+    .custom-confirm-title {
+      font-size: 20px;
+      font-weight: 600;
+      color: #111827;
+      text-align: center;
+      margin: 0;
+    }
+    
+    .custom-confirm-body {
+      padding: 20px 28px 28px;
+    }
+    
+    .custom-confirm-message {
+      font-size: 15px;
+      color: #6b7280;
+      text-align: center;
+      line-height: 1.6;
+      margin: 0;
+    }
+    
+    .custom-confirm-footer {
+      padding: 16px 20px;
+      background: #f9fafb;
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+    }
+    
+    .custom-confirm-btn {
+      padding: 10px 24px;
+      border-radius: 8px;
+      border: none;
+      font-size: 15px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      min-width: 100px;
+    }
+    
+    .custom-confirm-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+    
+    .custom-confirm-btn:active {
+      transform: translateY(0);
+    }
+    
+    .custom-confirm-btn.cancel {
+      background: white;
+      color: #374151;
+      border: 1.5px solid #d1d5db;
+    }
+    
+    .custom-confirm-btn.cancel:hover {
+      background: #f9fafb;
+      border-color: #9ca3af;
+    }
+    
+    .custom-confirm-btn.ok {
+      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+      color: white;
+      box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+    }
+    
+    .custom-confirm-btn.ok:hover {
+      background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+    }
+    
+    .custom-confirm-btn.ok.warning {
+      background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+      box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
+    }
+    
+    .custom-confirm-btn.ok.warning:hover {
+      background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+      box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+    }
+    
+    .custom-confirm-btn.ok.danger {
+      background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+      box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+    }
+    
+    .custom-confirm-btn.ok.danger:hover {
+      background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+      box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+    }
+    
+    .custom-confirm-btn.ok.success {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+    }
+    
+    .custom-confirm-btn.ok.success:hover {
+      background: linear-gradient(135deg, #059669 0%, #047857 100%);
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px) scale(0.95);
       }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+  </style>
+  <script>
+    // Custom Confirm Dialog
+    function customConfirm(options) {
+      return new Promise((resolve) => {
+        const overlay = document.createElement('div');
+        overlay.className = 'custom-confirm-overlay';
+        
+        const iconMap = {
+          warning: '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
+          danger: '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>',
+          success: '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>',
+          info: '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>'
+        };
+        
+        overlay.innerHTML = `
+          <div class="custom-confirm-box">
+            <div class="custom-confirm-header">
+              <div class="custom-confirm-icon ${options.type || 'warning'}">
+                ${iconMap[options.type] || '❓'}
+              </div>
+              <h3 class="custom-confirm-title">${options.title || 'Konfirmasi'}</h3>
+            </div>
+            <div class="custom-confirm-body">
+              <p class="custom-confirm-message">${options.message || 'Apakah Anda yakin?'}</p>
+            </div>
+            <div class="custom-confirm-footer">
+              <button class="custom-confirm-btn cancel">${options.cancelText || 'Batal'}</button>
+              <button class="custom-confirm-btn ok ${options.type || ''}">${options.okText || 'OK'}</button>
+            </div>
+          </div>
+        `;
+        
+        document.body.appendChild(overlay);
+        setTimeout(() => overlay.classList.add('active'), 10);
+        
+        const cancelBtn = overlay.querySelector('.custom-confirm-btn.cancel');
+        const okBtn = overlay.querySelector('.custom-confirm-btn.ok');
+        
+        function closeDialog(result) {
+          overlay.classList.remove('active');
+          setTimeout(() => {
+            document.body.removeChild(overlay);
+            resolve(result);
+          }, 200);
+        }
+        
+        cancelBtn.onclick = () => closeDialog(false);
+        okBtn.onclick = () => closeDialog(true);
+        overlay.onclick = (e) => {
+          if (e.target === overlay) closeDialog(false);
+        };
+      });
+    }
+    
+    function cetakDanSelesai(id) {
+      customConfirm({
+        type: 'success',
+        title: 'Tandai Selesai',
+        message: 'Tandai pengajuan ini sebagai selesai dan cetak surat?',
+        okText: 'Ya, Selesai',
+        cancelText: 'Batal'
+      }).then(result => {
+        if (result) {
+          document.getElementById('formSelesai').submit();
+          setTimeout(function() {
+            window.open('?p=print_surat&id=' + id, '_blank');
+          }, 500);
+        }
+      });
+    }
+    
+    function prosesConfirm() {
+      customConfirm({
+        type: 'warning',
+        title: 'Proses Pengajuan',
+        message: 'Apakah Anda yakin ingin memproses pengajuan ini?',
+        okText: 'Ya, Proses',
+        cancelText: 'Batal'
+      }).then(result => {
+        if (result) {
+          document.getElementById('formProses').submit();
+        }
+      });
+    }
+    
+    function tolakConfirm() {
+      customConfirm({
+        type: 'danger',
+        title: 'Tolak Pengajuan',
+        message: 'Apakah Anda yakin ingin menolak pengajuan ini? Anda akan diarahkan ke halaman untuk mengisi alasan penolakan.',
+        okText: 'Ya, Tolak',
+        cancelText: 'Batal'
+      }).then(result => {
+        if (result) {
+          document.getElementById('formTolak').submit();
+        }
+      });
     }
   </script>
 </head>
@@ -149,58 +411,202 @@ $flash = flash_get();
         </div>
         
         <table class="detail-table">
-          <tr>
-            <td class="label">NIK</td>
-            <td><strong><?= h($request['nik']) ?></strong></td>
-          </tr>
-          <tr>
-            <td class="label">Nama Lengkap</td>
-            <td><strong><?= h($request['nama']) ?></strong></td>
-          </tr>
-          <tr>
-            <td class="label">Alamat</td>
-            <td><?= h($request['alamat']) ?></td>
-          </tr>
+          <?php if ($request['jenis_dokumen'] === 'SKCK'): ?>
+            <!-- Format untuk SKCK -->
+            <tr>
+              <td class="label">1. Nama</td>
+              <td><strong><?= h($request['nama'] ?? $request['nama_ortu'] ?? '') ?></strong></td>
+            </tr>
+            <tr>
+              <td class="label">2. Tempat dan tanggal lahir</td>
+              <td><?= h($request['tempat_lahir'] ?? '-') ?>, <?= h($request['tanggal_lahir'] ?? '-') ?></td>
+            </tr>
+            <tr>
+              <td class="label">3. Jenis Kelamin</td>
+              <td><?= h($request['jenis_kelamin'] ?? '-') ?></td>
+            </tr>
+            <tr>
+              <td class="label">4. Kewarganegaraan</td>
+              <td><?= h($request['kewarganegaraan'] ?? 'Indonesia') ?></td>
+            </tr>
+            <tr>
+              <td class="label">5. Agama</td>
+              <td><?= h($request['agama'] ?? '-') ?></td>
+            </tr>
+            <tr>
+              <td class="label">6. Nomor Induk Kependudukan</td>
+              <td><strong><?= h($request['nik']) ?></strong></td>
+            </tr>
+            <tr>
+              <td class="label">7. Status Perkawinan</td>
+              <td><?= h($request['status_perkawinan'] ?? '-') ?></td>
+            </tr>
+            <tr>
+              <td>8. alamat tempat tinggal</td>
+                <td><?= h($request['alamat'] ?? '') ?></td>
+              </tr>
+            <tr>
+              <td class="label">9. Keperluan</td>
+              <td><?= h($request['tujuan_pembuatan'] ?? '-') ?></td>
+            </tr>
+            <tr>
+              <td class="label">10. Berlaku Mulai - Sampai</td>
+              <td>
+                <form method="post" action="?p=request_approve" style="margin: 0;">
+                  <input type="hidden" name="pengajuan_id" value="<?= h($id) ?>">
+                  <input type="hidden" name="action" value="update_tanggal_kadaluarsa">
+                  <div style="display: flex; gap: 10px; align-items: center;">
+                    <input type="date" name="tanggal_mulai_skck" value="<?= h($request['tanggal_mulai_skck'] ?? '') ?>" 
+                           placeholder="Tanggal Mulai"
+                           style="padding: 8px; border: 2px solid #ddd; border-radius: 4px; font-size: 14px;">
+                    <span style="font-weight: bold;">s/d</span>
+                    <input type="date" name="tanggal_kadaluarsa_skck" value="<?= h($request['tanggal_kadaluarsa_skck'] ?? '') ?>" 
+                           placeholder="Tanggal Kadaluarsa"
+                           style="padding: 8px; border: 2px solid #ddd; border-radius: 4px; font-size: 14px;">
+                    <button type="submit" class="btn btn-sm btn-success">Simpan</button>
+                  </div>
+                </form>
+              </td>
+            </tr>
+          <?php elseif (stripos($request['jenis_dokumen'], 'pengantar') !== false || stripos($request['jenis_dokumen'], 'dibawah umur') !== false): ?>
+            <!-- Format untuk Surat Pengantar / Dibawah Umur -->
+            <tr>
+              <td class="label">1. Nama</td>
+              <td><strong><?= h($request['nama'] ?? $request['nama_ortu'] ?? '') ?></strong></td>
+            </tr>
+            <tr>
+              <td class="label">2. Jenis Kelamin</td>
+              <td><?= h($request['jenis_kelamin'] ?? '-') ?></td>
+            </tr>
+            <tr>
+              <td class="label">3. Tempat Tanggal Lahir / Umur</td>
+              <td><?= h($request['tempat_lahir'] ?? '-') ?>, <?= h($request['tanggal_lahir'] ?? '-') ?> (<?= h($request['umur'] ?? '-') ?> Tahun)</td>
+            </tr>
+            <tr>
+              <td class="label">4. status</td>
+              <td><?= h($request['status'] ?? '-') ?></td>
+            </tr>
+            <tr>
+              <td class="label">5. Warganegara</td>
+              <td><?= h($request['kewarganegaraan'] ?? 'Indonesia') ?></td>
+            </tr>
+            <tr>
+              <td class="label">6. Keterangan</td>
+              <td><?= h($request['keterangan'] ?? 'Menerangkan bahwa orang tersebut diatas akan mengajukan sidang ke Pengadilan Agama Purbalingga, karena orang tersebut hendak melakukan pernikahan di bawah umur.') ?></td>
+            </tr>
+          <?php elseif (stripos($request['jenis_dokumen'], 'usaha') !== false): ?>
+            <!-- Format untuk Surat Keterangan Usaha -->
+            <tr>
+              <td class="label">1. Nama</td>
+              <td><strong><?= h($request['nama'] ?? $request['nama_ortu'] ?? '') ?></strong></td>
+            </tr>
+            <tr>
+              <td class="label">2. Jenis Kelamin</td>
+              <td><?= h($request['jenis_kelamin'] ?? '-') ?></td>
+            </tr>
+            <tr>
+              <td class="label">3. Tempat/tgl lahir</td>
+              <td><?= h($request['tempat_lahir'] ?? '-') ?>, <?= h($request['tanggal_lahir'] ?? '-') ?></td>
+            </tr>
+            <tr>
+              <td class="label">4. Kewarganegaraan</td>
+              <td><?= h($request['kewarganegaraan'] ?? 'Indonesia') ?></td>
+            </tr>
+            <tr>
+              <td class="label">5. Nomor Induk</td>
+              <td><strong><?= h($request['nik']) ?></strong></td>
+            </tr>
+            <tr>
+              <td class="label">6. Pekerjaan</td>
+              <td><?= h($request['pekerjaan'] ?? '-') ?></td>
+            </tr>
+            <tr>
+              <td class="label">7. Alamat Tempat tinggal</td>
+                <td><?= h($request['alamat'] ?? '') ?></td>
+            </tr>
+            <tr>
+              <td class="label" colspan="2"><strong>Orang tersebut di atas adalah benar-benar usaha di bidang:</strong></td>
+            </tr>
+            <tr>
+              <td class="label">1. Jenis Usaha</td>
+              <td><?= h($request['jenis_usaha'] ?? '-') ?></td>
+            </tr>
+            <tr>
+              <td class="label">2. Tempat Usaha</td>
+              <td><?= h($request['alamat_usaha'] ?? '-') ?></td>
+            </tr>
+            <tr>
+              <td class="label">3. Lama Usaha</td>
+              <td><?= h($request['lama_usaha'] ?? '-') ?></td>
+            </tr>
+          <?php elseif (stripos($request['jenis_dokumen'], 'sktm') !== false || stripos($request['jenis_dokumen'], 'tidak mampu') !== false): ?>
+            <!-- Format untuk SKTM -->
+            <tr>
+              <td class="label">1. Nama</td>
+              <td><strong><?= h($request['nama_ortu']) ?></strong></td>
+            </tr>
+            <tr>
+              <td class="label">2. NIK</td>
+              <td><strong><?= h($request['nik']) ?></strong></td>
+            </tr>
+            <tr>
+              <td class="label">3. Tempat, Tanggal Lahir</td>
+              <td><?= h($request['tempat_lahir_ortu'] ?? '-') ?>, <?= h($request['tanggal_lahir_ortu'] ?? '-') ?></td>
+            </tr>
+            <tr>
+              <td class="label">4. Jenis Kelamin</td>
+              <td><?= h($request['jk_ortu'] ?? '-') ?></td>
+            </tr>
+            <tr>
+              <td class="label">5. Agama</td>
+              <td><?= h($request['agama'] ?? '-') ?></td>
+            </tr>
+            <tr>
+              <td class="label">6. Pekerjaan</td>
+              <td><?= h($request['pekerjaan'] ?? '-') ?></td>
+            </tr>
+            
+            <tr>
+              <td>8. alamat </td>
+                <td><?= h($request['alamat'] ) ?></td>
+            </tr>
+            <tr>
+              <td class="label">9. Keperluan</td>
+              <td><?= h($request['tujuan_pembuatan'] ?? '-') ?></td>
+            </tr>
+          <?php elseif (stripos($request['jenis_dokumen'], 'keterangan') !== false || stripos($request['jenis_dokumen'], 'domisili') !== false): ?>
+            <!-- Format untuk Surat Keterangan / Domisili -->
+            <tr>
+              <td class="label">1. Nama</td>
+              <td><strong><?= h($request['nama'] ?? $request['nama_ortu'] ?? '') ?></strong></td>
+            </tr>
+            <tr>
+              <td class="label">2. Jenis Kelamin</td>
+              <td><?= h($request['jenis_kelamin'] ?? '-') ?></td>
+            </tr>
+            <tr>
+              <td class="label">3. Tempat Tanggal Lahir / Umur</td>
+              <td><?= h($request['tempat_lahir'] ?? '-') ?> / <?= h($request['tanggal_lahir'] ?? '-') ?> (<?= h($request['umur'] ?? '-') ?> tahun)</td>
+            </tr>
+            <tr>
+              <td class="label">4. Warganegara</td>
+              <td><?= h($request['kewarganegaraan'] ?? 'Indonesia') ?></td>
+            </tr>
+            <tr>
+              <td class="label">5. Agama</td>
+              <td><?= h($request['agama'] ?? '-') ?></td>
+            </tr>
+            <tr>
+              <td class="label">7. Pekerjaan</td>
+              <td><?= h($request['pekerjaan'] ?? '-') ?></td>
+            </tr>
+            <tr>
+              <td class="label">8. Alamat Tempat tinggal</td>
+                <td><?= h($request['alamat'] ?? '') ?></td>
+            </tr>
+          <?php endif; ?>
         </table>
       </div>
-
-      <!-- Riwayat Status -->
-      <?php if (!empty($riwayat_list)): ?>
-      <div class="detail-card">
-        <div class="detail-header">
-          <h3>Riwayat Status</h3>
-        </div>
-        
-        <div class="timeline">
-          <?php foreach ($riwayat_list as $riwayat): ?>
-          <div class="timeline-item">
-            <div class="timeline-marker"></div>
-            <div class="timeline-content">
-              <div class="timeline-header">
-                <?php
-                $badge_class = match($riwayat['status']) {
-                    'Selesai' => 'badge-success',
-                    'Diproses' => 'badge-warning',
-                    'Ditolak' => 'badge-danger',
-                    'Diajukan' => 'badge-secondary',
-                    default => 'badge-secondary'
-                };
-                ?>
-                <span class="badge <?= $badge_class ?>"><?= h($riwayat['status']) ?></span>
-                <span class="timeline-date"><?= date('d M Y, H:i', strtotime($riwayat['created_at'])) ?></span>
-              </div>
-              <?php if (!empty($riwayat['keterangan'])): ?>
-              <div class="timeline-comment">
-                <strong>Keterangan:</strong>
-                <p><?= h($riwayat['keterangan']) ?></p>
-              </div>
-              <?php endif; ?>
-            </div>
-          </div>
-          <?php endforeach; ?>
-        </div>
-      </div>
-      <?php endif; ?>
 
       <!-- Form Komentar untuk Status Ditolak -->
       <?php if ($current_status === 'Ditolak'): ?>
@@ -214,19 +620,19 @@ $flash = flash_get();
           <input type="hidden" name="action" value="kirim_komentar">
           
           <div style="margin-bottom: 15px;">
-            <label for="komentar" style="display: block; margin-bottom: 8px; font-weight: 500;">Komentar / Catatan:</label>
+            <label for="komentar" style="display: block; margin-bottom: 8px; font-weight: 500;">Alasan Penolakan:</label>
             <textarea 
               name="komentar" 
               id="komentar" 
               rows="4" 
               required
-              placeholder="Masukkan komentar atau catatan untuk pemohon..."
+              placeholder="Masukkan alasan penolakan untuk pemohon..."
               style="width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 4px; font-size: 14px; font-family: inherit; resize: vertical;"
             ></textarea>
           </div>
           
           <button type="submit" class="btn btn-primary">
-            Kirim Komentar
+            Kirim Alasan Penolakan
           </button>
         </form>
       </div>
@@ -240,10 +646,10 @@ $flash = flash_get();
         
         <div style="display: flex; gap: 10px; padding: 20px;">
           <?php if ($current_status === 'Diajukan'): ?>
-            <form method="post" action="?p=request_approve" style="display: inline-block;">
+            <form method="post" action="?p=request_approve" style="display: inline-block;" id="formProses">
               <input type="hidden" name="pengajuan_id" value="<?= h($id) ?>">
               <input type="hidden" name="action" value="proses">
-              <button type="submit" class="btn btn-warning" onclick="return confirm('Proses pengajuan ini?')">
+              <button type="button" class="btn btn-warning" onclick="prosesConfirm()">
                 Proses Pengajuan
               </button>
             </form>
@@ -260,10 +666,10 @@ $flash = flash_get();
           <?php endif; ?>
           
           <?php if ($current_status !== 'Ditolak' && $current_status !== 'Selesai'): ?>
-            <form method="post" action="?p=request_approve" style="display: inline-block;">
+            <form method="post" action="?p=request_approve" style="display: inline-block;" id="formTolak">
               <input type="hidden" name="pengajuan_id" value="<?= h($id) ?>">
               <input type="hidden" name="action" value="tolak">
-              <button type="submit" class="btn btn-danger" onclick="return confirm('Tolak pengajuan ini?')">
+              <button type="button" class="btn btn-danger" onclick="tolakConfirm()">
                 Tolak Pengajuan
               </button>
             </form>

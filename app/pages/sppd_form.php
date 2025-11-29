@@ -27,23 +27,24 @@ $flash = flash_get();
   <link rel="stylesheet" href="<?= h(rtrim(APP_URL, '/')) ?>/assets/css/style.css">
   <style>
     .form-group {
-      margin-bottom: 20px;
+      margin-bottom: 12px;
     }
     .form-group label {
       display: block;
-      margin-bottom: 8px;
+      margin-bottom: 4px;
       font-weight: 600;
       color: #2d5016;
+      font-size: 13px;
     }
     .form-group input[type="text"],
     .form-group input[type="date"],
     .form-group input[type="number"],
     .form-group select {
       width: 100%;
-      padding: 10px;
+      padding: 6px 10px;
       border: 1px solid #ddd;
       border-radius: 4px;
-      font-size: 14px;
+      font-size: 13px;
       background: #f5f5f5;
     }
     .form-group input:focus,
@@ -55,33 +56,42 @@ $flash = flash_get();
     .form-row {
       display: grid;
       grid-template-columns: 1fr 1fr 1fr;
-      gap: 20px;
+      gap: 15px;
     }
     .form-actions {
-      margin-top: 30px;
+      margin-top: 20px;
       display: flex;
       gap: 10px;
     }
     .radio-group {
       display: flex;
       gap: 20px;
-      margin-top: 8px;
+      margin-top: 4px;
     }
     .radio-group label {
       font-weight: normal;
       display: flex;
       align-items: center;
       gap: 5px;
+      font-size: 13px;
     }
     .form-header {
       background: #4a7c2c;
       color: white;
-      padding: 15px 20px;
+      padding: 10px 20px;
       border-radius: 4px;
-      margin-bottom: 30px;
+      margin-bottom: 15px;
       text-align: center;
-      font-size: 18px;
+      font-size: 16px;
       font-weight: 600;
+    }
+    .content {
+      padding: 15px 20px !important;
+    }
+    .alert {
+      padding: 8px 15px;
+      margin-bottom: 10px;
+      font-size: 13px;
     }
   </style>
 </head>
@@ -155,22 +165,20 @@ $flash = flash_get();
             <label>Tempat Tujuan</label>
             <input type="text" name="tempat_tujuan" placeholder="Tempat Tujuan" value="<?= h($sppd['tempat_tujuan'] ?? '') ?>" required>
           </div>
-          <div class="form-group"></div>
-          <div class="form-group"></div>
-        </div>
-
-        <div class="form-group">
-          <label>Jenis Durasi</label>
-          <div class="radio-group">
-            <label>
-              <input type="radio" name="jenis_durasi" value="harian" <?= ($sppd['jenis_durasi'] ?? '') == 'harian' ? 'checked' : '' ?> required>
-              Harian
-            </label>
-            <label>
-              <input type="radio" name="jenis_durasi" value="lebih dari 1 hari" <?= ($sppd['jenis_durasi'] ?? '') == 'lebih dari 1 hari' ? 'checked' : '' ?>>
-              Lebih dari 1 hari
-            </label>
+          <div class="form-group">
+            <label>Jenis Durasi</label>
+            <div class="radio-group">
+              <label>
+                <input type="radio" name="jenis_durasi" value="harian" <?= ($sppd['jenis_durasi'] ?? '') == 'harian' ? 'checked' : '' ?> required>
+                Harian
+              </label>
+              <label style="white-space: nowrap;">
+                <input type="radio" name="jenis_durasi" value="lebih dari 1 hari" <?= ($sppd['jenis_durasi'] ?? '') == 'lebih dari 1 hari' ? 'checked' : '' ?>>
+                Lebih dari 1 hari
+              </label>
+            </div>
           </div>
+          <div class="form-group"></div>
         </div>
 
         <div class="form-row">

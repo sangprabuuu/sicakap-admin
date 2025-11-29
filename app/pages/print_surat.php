@@ -359,6 +359,7 @@ if ($is_skck || $is_pengantar || $is_usaha || $is_sktm || $is_keterangan) {
         <p>Mengetahui,</p>
         <p><strong>CAMAT MREBET</strong></p>
         <div class="ttd-space"></div>
+        <div class="ttd-space"></div>
         <p class="garis-titik" style="min-width: 200px;"></p>
     </div>
     

@@ -54,19 +54,19 @@ if ($laporan_result['code'] === 200 && !empty($laporan_result['data'])) {
     <div class="cards">
       <div class="card">
         <div class="card-title">Pengajuan Dokumen</div>
-        <div class="card-value"><?= $total_pengajuan ?></div>
+        <div class="card-value" style="color:#000; font-size:44px; font-weight:bold;"><?= $total_pengajuan ?></div>
         <div class="card-desc">Total pengajuan dokumen</div>
       </div>
 
       <div class="card">
         <div class="card-title">Dokumen Selesai</div>
-        <div class="card-value"><?= $total_selesai ?></div>
+        <div class="card-value"style="color:#000; font-size:44px; font-weight:bold;"><?= $total_selesai ?></div>
         <div class="card-desc">Jumlah surat yang selesai dibuat</div>
       </div>
 
       <div class="card">
         <div class="card-title">Laporan</div>
-        <div class="card-value"><?= $total_laporan ?></div>
+        <div class="card-value"style="color:#000; font-size:44px; font-weight:bold;"><?= $total_laporan ?></div>
         <div class="card-desc">Detail pelaporan masalah</div>
       </div>
     </div>

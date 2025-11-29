@@ -17,6 +17,10 @@ $all_requests = ($result['code'] === 200 && !empty($result['data'])) ? $result['
 if (isset($_GET['debug'])) {
     echo '<pre style="background:#f5f5f5;padding:20px;margin:20px;border:1px solid #ccc;">';
     echo "Total Pengajuan: " . count($all_requests) . "\n\n";
+    if (!empty($all_requests)) {
+        echo "Sample Data (First Record):\n";
+        print_r($all_requests[0]);
+    }
 }
 
 // Ambil semua status dari tabel riwayat
@@ -183,8 +187,8 @@ $flash = flash_get();
               <td><?= $offset + $i + 1 ?></td>
               <td><strong><?= h($letter['nomor_pengajuan'] ?? '-') ?></strong></td>
               <td><?= date('d/m/Y', strtotime($letter['created_at'])) ?></td>
-              <td><?= h($letter['nik']) ?></td>
-              <td><?= h($letter['nama']) ?></td>
+              <td><?= h($letter['nik'] ?: '-') ?></td>
+              <td style="color:#000;"><?= h($letter['nama'] ?: ($letter['nama_ortu']  ?: '-')) ?></td>
               <td><?= h($letter['jenis_dokumen']) ?></td>
               <td><?= h($letter['alamat']) ?></td>
               <td class="actions">

@@ -176,14 +176,10 @@ $tanggal_indo = "$tgl " . $bulan_indo[$bln] . " $thn";
                     <img src="<?= rtrim(APP_URL, '/') ?>/assets/images/logo_kabupaten.jpg" alt="Logo" style="width: 90px; height: auto;">
                 </td>
                 <td style="text-align: center; vertical-align: middle;">
-                    <h2 style="margin: 2px 0; font-size: 14pt;">PEMERINTAH KABUPATEN PURBALINGGA</h2>
-                    <h2 style="margin: 2px 0; font-size: 14pt;">KECAMATAN MREBET</h2>
-                    <h1 style="margin: 5px 0; font-size: 18pt; font-weight: bold;">DESA CAMPAKOAH</h1>
-                    <p style="margin: 2px 0; font-size: 10pt;">Alamat: Jalan Desa Campakoah</p>
-                    <div style="display: flex; justify-content: space-between; margin-top: 5px; font-size: 10pt;">
-                        <span>Alamat: Jalan Desa Campakoah</span>
-                        <span>Kode Pos: 53352</span>
-                    </div>
+                    <h2 style="margin: 0; font-size: 13pt; line-height: 1.2;">PEMERINTAH KABUPATEN PURBALINGGA</h2>
+                    <h2 style="margin: 0; font-size: 13pt; line-height: 1.2;">KECAMATAN MREBET</h2>
+                    <h1 style="margin: 3px 0; font-size: 18pt; font-weight: bold;">DESA CAMPAKOAH</h1>
+                    <p style="margin: 2px 0; font-size: 10pt;">Alamat: Jalan Desa Campakoah &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Kode Pos: 53352</p>
                 </td>
             </tr>
         </table>

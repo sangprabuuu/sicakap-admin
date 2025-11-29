@@ -32,28 +32,29 @@ $flash = flash_get();
   <link rel="stylesheet" href="<?= h(rtrim(APP_URL, '/')) ?>/assets/css/style.css">
   <style>
     .form-group {
-      margin-bottom: 20px;
+      margin-bottom: 12px;
     }
     .form-group label {
       display: block;
-      margin-bottom: 8px;
+      margin-bottom: 4px;
       font-weight: 600;
       color: #2d5016;
+      font-size: 13px;
     }
     .form-group input[type="text"],
     .form-group input[type="date"],
     .form-group input[type="time"],
     .form-group textarea {
       width: 100%;
-      padding: 10px;
+      padding: 6px 10px;
       border: 1px solid #ddd;
       border-radius: 4px;
-      font-size: 14px;
+      font-size: 13px;
       background: #f5f5f5;
     }
     .form-group textarea {
       resize: vertical;
-      min-height: 80px;
+      min-height: 50px;
     }
     .form-group input:focus,
     .form-group textarea:focus {
@@ -63,23 +64,26 @@ $flash = flash_get();
     }
     .form-row {
       display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 20px;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 15px;
     }
     .form-actions {
-      margin-top: 30px;
+      margin-top: 20px;
       display: flex;
       gap: 10px;
     }
     .form-header {
       background: #4a7c2c;
       color: white;
-      padding: 15px 20px;
+      padding: 10px 20px;
       border-radius: 4px;
-      margin-bottom: 30px;
+      margin-bottom: 15px;
       text-align: center;
-      font-size: 18px;
+      font-size: 16px;
       font-weight: 600;
+    }
+    .content {
+      padding: 15px 20px !important;
     }
   </style>
 </head>
@@ -109,12 +113,11 @@ $flash = flash_get();
         <input type="hidden" name="id" value="<?= h($undangan['id']) ?>">
         <?php endif; ?>
 
-        <div class="form-group">
-          <label>Tanggal Pembuatan Surat</label>
-          <input type="date" name="tanggal_surat" value="<?= h($undangan['tanggal_surat'] ?? date('Y-m-d')) ?>" required>
-        </div>
-
         <div class="form-row">
+          <div class="form-group">
+            <label>Tanggal Pembuatan Surat</label>
+            <input type="date" name="tanggal_surat" value="<?= h($undangan['tanggal_surat'] ?? date('Y-m-d')) ?>" required>
+          </div>
           <div class="form-group">
             <label>Nomor Surat</label>
             <input type="text" name="nomor_surat" placeholder="Nomor Surat" value="<?= h($undangan['nomor_surat'] ?? '') ?>" required>
@@ -134,20 +137,25 @@ $flash = flash_get();
             <label>Perihal</label>
             <input type="text" name="perihal" placeholder="Perihal" value="<?= h($undangan['perihal'] ?? '') ?>" required>
           </div>
-        </div>
-        <div class="form-group">
-          <label>Agenda</label>
-          <textarea name="agenda" placeholder="Agenda" required><?= h($undangan['agenda'] ?? '') ?></textarea>
-        </div>
-
-        <div class="form-group">
-          <label>Alamat</label>
-          <textarea name="alamat" placeholder="Alamat" required><?= h($undangan['alamat'] ?? '') ?></textarea>
+          <div class="form-group">
+            <label>Tempat Pelaksanaan</label>
+            <input type="text" name="tempat_pelaksanaan" placeholder="Tempat Pelaksanaan" value="<?= h($undangan['tempat_pelaksanaan'] ?? '') ?>" required>
+          </div>
         </div>
 
-        <div class="form-group">
-          <label>Tembusan Kepada</label>
-          <textarea name="tembusan_kepada" placeholder="Tembusan Kepada (Opsional)"><?= h($undangan['tembusan_kepada'] ?? '') ?></textarea>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Agenda</label>
+            <textarea name="agenda" placeholder="Agenda" required><?= h($undangan['agenda'] ?? '') ?></textarea>
+          </div>
+          <div class="form-group">
+            <label>Alamat</label>
+            <textarea name="alamat" placeholder="Alamat" required><?= h($undangan['alamat'] ?? '') ?></textarea>
+          </div>
+          <div class="form-group">
+            <label>Tembusan Kepada</label>
+            <textarea name="tembusan_kepada" placeholder="Tembusan Kepada (Opsional)"><?= h($undangan['tembusan_kepada'] ?? '') ?></textarea>
+          </div>
         </div>
 
         <div class="form-row">
@@ -159,16 +167,9 @@ $flash = flash_get();
             <label>Jam</label>
             <input type="time" name="jam" id="jam" value="<?= h($undangan['jam'] ?? '') ?>" required>
           </div>
-        </div>
-
-        <div class="form-row">
           <div class="form-group">
             <label>Hari/ Tanggal</label>
-            <input type="text" name="hari_tanggal" id="hari_tanggal" placeholder="Otomatis terisi dari Tanggal Pelaksanaan" value="<?= h($undangan['hari_tanggal'] ?? '') ?>" required readonly style="background: #e8f5e9;">
-          </div>
-          <div class="form-group">
-            <label>Tempat Pelaksanaan</label>
-            <input type="text" name="tempat_pelaksanaan" placeholder="Tempat Pelaksanaan" value="<?= h($undangan['tempat_pelaksanaan'] ?? '') ?>" required>
+            <input type="text" name="hari_tanggal" id="hari_tanggal" placeholder="Otomatis terisi" value="<?= h($undangan['hari_tanggal'] ?? '') ?>" required readonly style="background: #e8f5e9;">
           </div>
         </div>
 

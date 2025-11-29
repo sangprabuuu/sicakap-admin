@@ -202,74 +202,30 @@ $flash = flash_get();
     <!-- Statistik Cards -->
     <div class="cards">
     <div class="card report-card">
-      <div class="card-title"> Pelaporan Masalah</div>
-      <div class="card-value"><?= $stats['total_laporan'] ?></div>
+      <div class="card-title">Pelaporan Masalah</div>
+      <div class="card-value" style="color:#000;font-size:48px;font-weight:bold;"><?= $stats['total_laporan'] ?></div>
       <div class="card-desc">Laporan masuk</div>
     </div>
     
       <div class="card report-card">
-        <div class="card-title"> Total Semua</div>
-        <div class="card-value"><?= $stats['total_semua'] ?></div>
+        <div class="card-title">Total Semua</div>
+        <div class="card-value" style="color:#000;font-size:48px;font-weight:bold;"><?= $stats['total_semua'] ?></div>
         <div class="card-desc">Laporan, SPPD & Undangan</div>
       </div>
 
       <div class="card report-card">
-        <div class="card-title"> SPPD</div>
-        <div class="card-value"><?= $stats['total_sppd'] ?></div>
+        <div class="card-title">SPPD</div>
+        <div class="card-value" style="color:#000;font-size:48px;font-weight:bold;"><?= $stats['total_sppd'] ?></div>
         <div class="card-desc">Surat Perintah/Tugas</div>
       </div>
 
       <div class="card report-card">
-        <div class="card-title"> Undangan</div>
-        <div class="card-value"><?= $stats['total_undangan'] ?></div>
+        <div class="card-title">Undangan</div>
+        <div class="card-value" style="color:#000;font-size:48px;font-weight:bold;"><?= $stats['total_undangan'] ?></div>
         <div class="card-desc">Surat Undangan</div>
       </div>
     </div>
-
-    <!-- Laporan per Kategori & List -->
-    <div class="report-row">
-      <div class="report-section report-half">
-        <h3> Pelaporan per Kategori</h3>
-        <div class="table-responsive">
-          <table class="data-table compact">
-            <thead>
-              <tr>
-                <th>No</th>
-                <th>Kategori</th>
-                <th>Jumlah</th>
-              </tr>
-            </thead>
-            <tbody>
-              <?php if (empty($by_category)): ?>
-              <tr><td colspan="3" class="text-center">Tidak ada data</td></tr>
-              <?php else: ?>
-                <?php $no = 1; foreach ($by_category as $cat => $count): ?>
-                <tr>
-                  <td><?= $no++ ?></td>
-                  <td><?= h($cat) ?></td>
-                  <td><strong><?= $count ?></strong></td>
-                </tr>
-                <?php endforeach; ?>
-              <?php endif; ?>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- <div class="report-section report-half">
-        <h3>📄 SPPD & Undangan</h3>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px;">
-          <div style="text-align: center; padding: 20px; background: #f0f8ff; border-radius: 8px;">
-            <div style="font-size: 36px; color: #4a7c2c; font-weight: bold;"><?= $stats['total_sppd'] ?></div>
-            <div style="color: #666; margin-top: 8px;">Surat SPPD</div>
-          </div>
-          <div style="text-align: center; padding: 20px; background: #fff0f0; border-radius: 8px;">
-            <div style="font-size: 36px; color: #4a7c2c; font-weight: bold;"><?= $stats['total_undangan'] ?></div>
-            <div style="color: #666; margin-top: 8px;">Surat Undangan</div>
-          </div>
-        </div>
-      </div> -->
-    </div>
+    
 
   </section>
 </div>

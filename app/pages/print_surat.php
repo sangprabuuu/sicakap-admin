@@ -36,6 +36,11 @@ if ($is_skck || $is_pengantar || $is_usaha || $is_sktm || $is_keterangan) {
     $alamat_desa = "Jln Desa Campakoah RT 02 RW 03";
     $kode_pos = "53352";
     $kode_wilayah = "33.03.062014";
+    
+    // Ambil nama pejabat dari database
+    $nama_kepala_desa = $request['nama_kepaladesa'] ?? '...........';
+    $nama_camat = $request['nama_camat'] ?? '...........';
+    $ttd_kepala_desa_url = $request['ttd_kepaladesa'] ?? '';
 }
 
 ?>
@@ -194,12 +199,19 @@ if ($is_skck || $is_pengantar || $is_usaha || $is_sktm || $is_keterangan) {
         }
         
         .ttd-space {
-            height: 50px;
+            height: 46px;
         }
         
         .ttd-nama {
             font-weight: bold;
             text-decoration: underline;
+        }
+        
+        .ttd-image {
+            max-width: 165px;
+            max-height: 75px;
+            margin: 5px auto;
+            display: block;
         }
         
         .no-print {
@@ -360,15 +372,20 @@ if ($is_skck || $is_pengantar || $is_usaha || $is_sktm || $is_keterangan) {
         <p><strong>CAMAT MREBET</strong></p>
         <div class="ttd-space"></div>
         <div class="ttd-space"></div>
-        <p class="garis-titik" style="min-width: 200px;"></p>
+        <p style="min-width: 200px;"><?= h($nama_camat) ?></p>
     </div>
     
     <div class="ttd">
         <p><?= h($nama_desa) ?>,</p>
         <p>an. <strong>KEPALA DESA <?= strtoupper(h($nama_desa)) ?></strong></p>
-        <p>Kepala Desa</p>
+        <p></p>
+        <?php if (!empty($ttd_kepala_desa_url)): ?>
+        <img src="<?= h($ttd_kepala_desa_url) ?>" alt="TTD Kepala Desa" class="ttd-image" onerror="this.style.display='none'; console.error('Gagal load gambar TTD:', '<?= h($ttd_kepala_desa_url) ?>');">
+        <!-- Debug: <?= h($ttd_kepala_desa_url) ?> -->
+        <?php else: ?>
         <div class="ttd-space"></div>
-        <p class="ttd-nama">KUSTOMO</p>
+        <?php endif; ?>
+        <p class="ttd-nama"><?= h($nama_kepala_desa) ?></p>
     </div>
     <div style="clear: both;"></div>
 
@@ -451,8 +468,12 @@ if ($is_skck || $is_pengantar || $is_usaha || $is_sktm || $is_keterangan) {
     <div class="ttd">
         <p><?= h($nama_desa) ?>,</p>
         <p><strong>KEPALA DESA <?= strtoupper(h($nama_desa)) ?></strong></p>
+        <?php if (!empty($ttd_kepala_desa_url)): ?>
+        <img src="<?= h($ttd_kepala_desa_url) ?>" alt="TTD" class="ttd-image">
+        <?php else: ?>
         <div class="ttd-space"></div>
-        <p class="ttd-nama"><u>KUSTOMO</u></p>
+        <?php endif; ?>
+        <p class="ttd-nama"><u><?= h($nama_kepala_desa) ?></u></p>
     </div>
     <div style="clear: both;"></div>
 
@@ -562,9 +583,13 @@ if ($is_skck || $is_pengantar || $is_usaha || $is_sktm || $is_keterangan) {
     <div class="ttd">
         <p><?= h($nama_desa) ?>,</p>
         <p>an. KEPALA DESA <?= strtoupper(h($nama_desa)) ?></p>
-        <p><em>Kepala Desa</em></p>
+        <p><em></em></p>
+        <?php if (!empty($ttd_kepala_desa_url)): ?>
+        <img src="<?= h($ttd_kepala_desa_url) ?>" alt="TTD" class="ttd-image">
+        <?php else: ?>
         <div class="ttd-space"></div>
-        <p class="ttd-nama">SUTOMO</p>
+        <?php endif; ?>
+        <p class="ttd-nama"><?= h($nama_kepala_desa) ?></p>
     </div>
     <div style="clear: both;"></div>
 
@@ -695,9 +720,13 @@ if ($is_skck || $is_pengantar || $is_usaha || $is_sktm || $is_keterangan) {
     <div class="ttd">
         <p><?= h($nama_desa) ?>,</p>
         <p>an. KEPALA DESA <?= strtoupper(h($nama_desa)) ?></p>
-        <p>KEPALA DESA</p>
+        <p></p>
+        <?php if (!empty($ttd_kepala_desa_url)): ?>
+        <img src="<?= h($ttd_kepala_desa_url) ?>" alt="TTD" class="ttd-image">
+        <?php else: ?>
         <div class="ttd-space"></div>
-        <p class="ttd-nama">KUSTOMO</p>
+        <?php endif; ?>
+        <p class="ttd-nama"><?= h($nama_kepala_desa) ?></p>
     </div>
     <div style="clear: both;"></div>
 
@@ -782,9 +811,13 @@ if ($is_skck || $is_pengantar || $is_usaha || $is_sktm || $is_keterangan) {
     <div class="ttd">
         <p><?= h($nama_desa) ?>,</p>
         <p>an. <strong>KEPALA DESA <?= strtoupper(h($nama_desa)) ?></strong></p>
-        <p>Kepala Desa</p>
+        <p></p>
+        <?php if (!empty($ttd_kepala_desa_url)): ?>
+        <img src="<?= h($ttd_kepala_desa_url) ?>" alt="TTD" class="ttd-image">
+        <?php else: ?>
         <div class="ttd-space"></div>
-        <p class="ttd-nama">KUSTOMO</p>
+        <?php endif; ?>
+        <p class="ttd-nama"><?= h($nama_kepala_desa) ?></p>
     </div>
     <div style="clear: both;"></div>
 

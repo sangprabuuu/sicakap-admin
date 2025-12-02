@@ -25,6 +25,10 @@ if (empty($result['data'])) {
 
 $sppd = $result['data'][0];
 
+// Get pejabat data
+$nama_kepala_desa = $sppd['nama_kepaladesa'] ?? 'SUTOMO';
+$ttd_kepala_desa_url = $sppd['ttd_kepaladesa'] ?? '';
+
 // Format tanggal Indonesia
 function formatTanggalIndo($date) {
     if (!$date) return '-';
@@ -218,6 +222,17 @@ $lama_perjalanan = $diff_days . ' hari';
             margin-top: 60px;
         }
         
+        .ttd-image {
+            max-width: 165px;
+            max-height: 75px;
+            margin: 5px auto;
+            display: block;
+        }
+        
+        .ttd-space {
+            height: 60px;
+        }
+        
         @media print {
             body {
                 padding: 0;
@@ -381,8 +396,13 @@ $lama_perjalanan = $diff_days . ' hari';
             <div class="signature-box">
                 <p>Campakoah, <?= formatTanggalIndo($sppd['tanggal_pembuatan']) ?></p>
                 <p><strong>KEPALA DESA CAMPAKOAH</strong></p>
-                <br><br><br><br>
-                <p class="signature-name">SUTOMO</p>
+                <?php if (!empty($ttd_kepala_desa_url)): ?>
+                    <img src="<?= h($ttd_kepala_desa_url) ?>" alt="TTD" class="ttd-image" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                    <div class="ttd-space" style="display:none;"></div>
+                <?php else: ?>
+                    <br><br><br><br>
+                <?php endif; ?>
+                <p class="signature-name"><?= h($nama_kepala_desa) ?></p>
             </div>
         </div>
     </div>

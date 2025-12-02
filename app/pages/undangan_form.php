@@ -108,7 +108,7 @@ $flash = flash_get();
         <?= $undangan ? 'Edit' : 'Input' ?> Surat Undangan
       </div>
 
-      <form method="post" action="?p=undangan_save">
+      <form method="post" action="?p=undangan_save" enctype="multipart/form-data">
         <?php if ($undangan): ?>
         <input type="hidden" name="id" value="<?= h($undangan['id']) ?>">
         <?php endif; ?>
@@ -171,6 +171,25 @@ $flash = flash_get();
             <label>Hari/ Tanggal</label>
             <input type="text" name="hari_tanggal" id="hari_tanggal" placeholder="Otomatis terisi" value="<?= h($undangan['hari_tanggal'] ?? '') ?>" required readonly style="background: #e8f5e9;">
           </div>
+        </div>
+
+        <div class="form-header" style="margin-top: 30px; background: #2d5016;">
+          Data Pejabat & Tanda Tangan
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Nama Kepala Desa</label>
+            <input type="text" name="nama_kepaladesa" placeholder="Nama Kepala Desa" value="<?= h($undangan['nama_kepaladesa'] ?? '') ?>">
+          </div>
+          <div class="form-group">
+            <label>TTD Kepala Desa (Upload Gambar)</label>
+            <input type="file" name="ttd_kepaladesa" accept="image/png,image/jpeg,image/jpg" style="background: white;">
+            <?php if (!empty($undangan['ttd_kepaladesa'])): ?>
+            <small style="color: #4a7c2c;">File saat ini: <a href="<?= h($undangan['ttd_kepaladesa']) ?>" target="_blank">Lihat File</a></small>
+            <?php endif; ?>
+          </div>
+          <div class="form-group"></div>
         </div>
 
         <div class="form-actions">

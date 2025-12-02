@@ -638,6 +638,53 @@ $flash = flash_get();
       </div>
       <?php endif; ?>
 
+      <!-- Form Data Pejabat & TTD -->
+      <div class="detail-card">
+        <div class="detail-header">
+          <h3>Data Pejabat & Tanda Tangan</h3>
+        </div>
+        
+        <form method="post" action="?p=request_approve" enctype="multipart/form-data" style="padding: 20px;">
+          <input type="hidden" name="pengajuan_id" value="<?= h($id) ?>">
+          <input type="hidden" name="action" value="update_pejabat_ttd">
+          
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+            <div>
+              <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #2d5016;">Nama Kepala Desa</label>
+              <input type="text" name="nama_kepaladesa" value="<?= h($request['nama_kepaladesa'] ?? '') ?>" 
+                     placeholder="Masukkan nama kepala desa" 
+                     style="width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 4px; font-size: 14px;">
+            </div>
+            
+            <?php if ($request['jenis_dokumen'] === 'SKCK'): ?>
+            <div>
+              <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #2d5016;">Nama Camat</label>
+              <input type="text" name="nama_camat" value="<?= h($request['nama_camat'] ?? '') ?>" 
+                     placeholder="Masukkan nama camat" 
+                     style="width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 4px; font-size: 14px;">
+            </div>
+            <?php endif; ?>
+          </div>
+          
+          <div style="margin-bottom: 20px;">
+            <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #2d5016;">Upload Tanda Tangan Kepala Desa</label>
+            <?php if (!empty($request['ttd_kepaladesa'])): ?>
+            <div style="margin-bottom: 10px; padding: 10px; background: #f0fdf4; border: 1px solid #86efac; border-radius: 4px;">
+              <span style="color: #16a34a; font-size: 13px;">✓ File tanda tangan sudah diupload</span>
+              <a href="<?= h($request['ttd_kepaladesa']) ?>" target="_blank" style="margin-left: 10px; color: #2563eb;">Lihat File</a>
+            </div>
+            <?php endif; ?>
+            <input type="file" name="ttd_kepaladesa" accept="image/png,image/jpeg,image/jpg" 
+                   style="width: 100%; padding: 10px; border: 2px dashed #ddd; border-radius: 4px; font-size: 14px; cursor: pointer;">
+            <small style="display: block; margin-top: 5px; color: #666; font-size: 12px;">Format: PNG, JPG, JPEG (Maks. 2MB). Gunakan background transparan untuk hasil terbaik.</small>
+          </div>
+          
+          <button type="submit" class="btn btn-primary" style="margin-top: 10px;">
+            💾 Simpan Data Pejabat & TTD
+          </button>
+        </form>
+      </div>
+
       <!-- Actions -->
       <div class="detail-card">
         <div class="detail-header">

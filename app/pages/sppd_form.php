@@ -116,7 +116,7 @@ $flash = flash_get();
         <?= $sppd ? 'Edit' : 'Input' ?> SPPD
       </div>
 
-      <form method="post" action="?p=sppd_save">
+      <form method="post" action="?p=sppd_save" enctype="multipart/form-data">
         <?php if ($sppd): ?>
         <input type="hidden" name="id" value="<?= h($sppd['id']) ?>">
         <?php endif; ?>
@@ -189,6 +189,25 @@ $flash = flash_get();
           <div class="form-group" id="tanggal-selesai-group">
             <label>Tanggal Selesai</label>
             <input type="date" name="tanggal_selesai" id="tanggal-selesai" value="<?= h($sppd['tanggal_selesai'] ?? '') ?>" required>
+          </div>
+          <div class="form-group"></div>
+        </div>
+
+        <div class="form-header" style="margin-top: 30px; background: #2d5016;">
+          Data Pejabat & Tanda Tangan
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Nama Kepala Desa</label>
+            <input type="text" name="nama_kepaladesa" placeholder="Nama Kepala Desa" value="<?= h($sppd['nama_kepaladesa'] ?? '') ?>">
+          </div>
+          <div class="form-group">
+            <label>TTD Kepala Desa (Upload Gambar)</label>
+            <input type="file" name="ttd_kepaladesa" accept="image/png,image/jpeg,image/jpg" style="background: white;">
+            <?php if (!empty($sppd['ttd_kepaladesa'])): ?>
+            <small style="color: #4a7c2c;">File saat ini: <a href="<?= h($sppd['ttd_kepaladesa']) ?>" target="_blank">Lihat File</a></small>
+            <?php endif; ?>
           </div>
           <div class="form-group"></div>
         </div>

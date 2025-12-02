@@ -17,7 +17,7 @@ if (empty($pengajuan_id)) {
 }
 
 // Validate action
-$valid_actions = ['proses', 'selesai', 'tolak', 'update_nomor', 'kirim_komentar', 'update_tanggal_kadaluarsa'];
+$valid_actions = ['proses', 'selesai', 'tolak', 'update_nomor', 'kirim_komentar', 'update_tanggal_kadaluarsa', 'update_pejabat_ttd'];
 if (!in_array($action, $valid_actions)) {
     flash_set('Aksi tidak valid');
     header('Location: ' . APP_URL . '/?p=requests');
@@ -68,6 +68,114 @@ if ($action === 'update_tanggal_kadaluarsa') {
     }
     
     header('Location: ' . APP_URL . '/?p=request_detail&id=' . urlencode($pengajuan_id));
+    exit;
+}
+
+// Handle update_pejabat_ttd action - Update data pejabat dan upload TTD
+if ($action === 'update_pejabat_ttd') {
+    $nama_kepaladesa = trim($_POST['nama_kepaladesa'] ?? '');
+    $nama_camat = trim($_POST['nama_camat'] ?? '');
+    
+    // Debug - tampilkan di halaman
+    if (isset($_GET['debug'])) {
+        echo '<pre style="background:#f0f0f0;padding:20px;border:2px solid #333;">';
+        echo "=== DEBUG UPDATE PEJABAT TTD ===\n\n";
+        echo "Pengajuan ID: " . htmlspecialchars($pengajuan_id) . "\n";
+        echo "Nama Kepala Desa: " . htmlspecialchars($nama_kepaladesa) . "\n";
+        echo "Nama Camat: " . htmlspecialchars($nama_camat) . "\n\n";
+        echo "FILES:\n";
+        print_r($_FILES);
+        echo "\n\nPOST:\n";
+        print_r($_POST);
+        echo '</pre>';
+    }
+    
+    $update_fields = [];
+    
+    if (!empty($nama_kepaladesa)) {
+        $update_fields['nama_kepaladesa'] = $nama_kepaladesa;
+    }
+    
+    if (!empty($nama_camat)) {
+        $update_fields['nama_camat'] = $nama_camat;
+    }
+    
+    // Handle file upload TTD
+    if (isset($_FILES['ttd_kepaladesa']) && $_FILES['ttd_kepaladesa']['error'] === UPLOAD_ERR_OK) {
+        $file = $_FILES['ttd_kepaladesa'];
+        $allowed_types = ['image/png', 'image/jpeg', 'image/jpg'];
+        $max_size = 2 * 1024 * 1024; // 2MB
+        
+        if (!in_array($file['type'], $allowed_types)) {
+            flash_set('Format file tidak valid. Gunakan PNG, JPG, atau JPEG');
+            header('Location: ' . APP_URL . '/?p=request_detail&id=' . $pengajuan_id);
+            exit;
+        }
+        
+        if ($file['size'] > $max_size) {
+            flash_set('Ukuran file terlalu besar. Maksimal 2MB');
+            header('Location: ' . APP_URL . '/?p=request_detail&id=' . $pengajuan_id);
+            exit;
+        }
+        
+        // Generate unique filename
+        $file_extension = pathinfo($file['name'], PATHINFO_EXTENSION);
+        $new_filename = 'ttd_kepaladesa_' . $pengajuan_id . '_' . time() . '.' . $file_extension;
+        $upload_dir = __DIR__ . '/../../public/uploads/';
+        
+        // Create uploads directory if not exists
+        if (!file_exists($upload_dir)) {
+            mkdir($upload_dir, 0755, true);
+        }
+        
+        $target_path = $upload_dir . $new_filename;
+        
+        if (move_uploaded_file($file['tmp_name'], $target_path)) {
+            $file_url = APP_URL . '/uploads/' . $new_filename;
+            $update_fields['ttd_kepaladesa'] = $file_url;
+        } else {
+            flash_set('Gagal mengupload file tanda tangan');
+            header('Location: ' . APP_URL . '/?p=request_detail&id=' . $pengajuan_id);
+            exit;
+        }
+    }
+    
+    if (!empty($update_fields)) {
+        $update_data = json_encode($update_fields);
+        
+        // Debug di halaman
+        if (isset($_GET['debug'])) {
+            echo '<pre style="background:#e0f7fa;padding:20px;border:2px solid #00acc1;">';
+            echo "=== SENDING TO SUPABASE ===\n\n";
+            echo "Endpoint: pengajuan_dokumen?id=eq.$pengajuan_id\n";
+            echo "Update Data: " . $update_data . "\n";
+            echo '</pre>';
+        }
+        
+        $result = supabase_request('PATCH', "pengajuan_dokumen?id=eq.$pengajuan_id", $update_data);
+        
+        // Debug result di halaman
+        if (isset($_GET['debug'])) {
+            echo '<pre style="background:#fff3e0;padding:20px;border:2px solid #ff9800;">';
+            echo "=== SUPABASE RESPONSE ===\n\n";
+            echo "Result Code: " . $result['code'] . "\n";
+            echo "Result Data:\n";
+            print_r($result['data']);
+            echo '</pre>';
+            echo '<br><a href="?p=request_detail&id=' . htmlspecialchars($pengajuan_id) . '">Lihat Detail Tanpa Debug</a>';
+            exit;
+        }
+        
+        if ($result['code'] === 200 || $result['code'] === 204) {
+            flash_set('Data pejabat & tanda tangan berhasil disimpan');
+        } else {
+            flash_set('Gagal menyimpan data pejabat & tanda tangan: ' . ($result['data']['message'] ?? 'Unknown error'));
+        }
+    } else {
+        flash_set('Tidak ada data yang diubah');
+    }
+    
+    header('Location: ' . APP_URL . '/?p=request_detail&id=' . $pengajuan_id);
     exit;
 }
 

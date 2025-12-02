@@ -1,21 +1,31 @@
 <?php
-$pdo = db();
+// Cek login
+if (!is_logged_in()) {
+    header('Location: ' . APP_URL . '/?p=login');
+    exit;
+}
+
 $id = $_GET['id'] ?? '';
 
 if (!$id) {
-    header('Location: ?p=undangan');
+    header('Location: ' . APP_URL . '/?p=undangan');
     exit;
 }
 
-$stmt = $pdo->prepare("SELECT * FROM surat_undangan WHERE id = ?");
-$stmt->execute([$id]);
-$data = $stmt->fetch();
+// Get data dari Supabase
+$result = supabase_request('GET', "surat_undangan?id=eq.$id&select=*");
 
-if (!$data) {
+if (empty($result['data'])) {
     flash_set('Data undangan tidak ditemukan');
-    header('Location: ?p=undangan');
+    header('Location: ' . APP_URL . '/?p=undangan');
     exit;
 }
+
+$data = $result['data'][0];
+
+// Get pejabat data
+$nama_kepala_desa = $data['nama_kepaladesa'] ?? 'KUSTOMO';
+$ttd_kepala_desa_url = $data['ttd_kepaladesa'] ?? '';
 
 // Format tanggal Indonesia
 $bulan_indo = [
@@ -40,26 +50,32 @@ $tanggal_indo = "$tgl " . $bulan_indo[$bln] . " $thn";
         
         body {
             font-family: 'Times New Roman', Times, serif;
-            font-size: 10pt;
-            line-height: 1.4;
+            font-size: 12pt;
+            line-height: 1.6;
             margin: 0;
-            padding: 15px;
+            padding: 20px;
             background: white;
+        }
+        
+        .container {
+            max-width: 21cm;
+            margin: 0 auto;
         }
         
         .kop-surat {
             border-bottom: 3px solid #000;
-            padding-bottom: 8px;
-            margin-bottom: 15px;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
         }
         
         .kop-surat h2, .kop-surat h1 {
             font-weight: bold;
-            line-height: 1.1;
+            line-height: 1.2;
+            margin: 2px 0;
         }
         
         .nomor-surat {
-            margin: 15px 0;
+            margin: 20px 0;
         }
         
         .nomor-surat table {
@@ -68,63 +84,85 @@ $tanggal_indo = "$tgl " . $bulan_indo[$bln] . " $thn";
         }
         
         .nomor-surat td {
-            padding: 2px 5px;
+            padding: 3px 0;
             vertical-align: top;
+            font-size: 11pt;
         }
         
         .nomor-surat td:first-child {
-            width: 120px;
+            width: 100px;
         }
         
         .nomor-surat td:nth-child(2) {
-            width: 20px;
+            width: 15px;
+            text-align: center;
         }
         
         .isi-surat {
-            margin: 15px 0;
+            margin: 20px 0;
             text-align: justify;
+            font-size: 12pt;
         }
         
         .isi-surat p {
-            margin: 8px 0;
+            margin: 10px 0;
+            line-height: 1.8;
         }
         
         .detail-undangan {
-            margin: 15px 0 15px 40px;
+            margin: 20px 0 20px 60px;
+        }
+        
+        .detail-undangan table {
+            border-collapse: collapse;
         }
         
         .detail-undangan table td {
-            padding: 3px 10px;
+            padding: 5px 0;
             vertical-align: top;
+            font-size: 12pt;
         }
         
         .detail-undangan td:first-child {
-            width: 150px;
+            width: 140px;
         }
         
         .detail-undangan td:nth-child(2) {
-            width: 20px;
+            width: 15px;
+            text-align: center;
         }
         
         .ttd {
-            margin-top: 30px;
-            text-align: right;
+            margin-top: 40px;
+            text-align: center;
+            float: right;
+            width: 250px;
         }
         
         .ttd p {
-            margin: 4px 0;
+            margin: 5px 0;
+            font-size: 12pt;
         }
         
         .ttd-space {
-            height: 60px;
+            height: 70px;
+        }
+        
+        .ttd-image {
+            max-width: 150px;
+            max-height: 60px;
+            margin: 5px auto;
+            display: block;
         }
         
         .tembusan {
-            margin-top: 20px;
+            margin-top: 100px;
+            clear: both;
+            font-size: 11pt;
         }
         
         .tembusan p {
-            margin: 4px 0;
+            margin: 5px 0;
         }
         
         @media print {
@@ -134,11 +172,16 @@ $tanggal_indo = "$tgl " . $bulan_indo[$bln] . " $thn";
             .no-print {
                 display: none;
             }
+            .container {
+                padding: 0;
+            }
         }
         
         .no-print {
-            margin-bottom: 20px;
-            text-align: center;
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
         }
         
         .btn {
@@ -150,25 +193,35 @@ $tanggal_indo = "$tgl " . $bulan_indo[$bln] . " $thn";
             cursor: pointer;
             text-decoration: none;
             font-size: 14px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
         }
         
         .btn-primary {
-            background: #007bff;
+            background: #4a7c2c;
             color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #3a6c1c;
         }
         
         .btn-secondary {
             background: #6c757d;
             color: white;
         }
+        
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
     </style>
 </head>
 <body>
     <div class="no-print">
         <button onclick="window.print()" class="btn btn-primary">🖨️ Print</button>
-        <a href="?p=undangan" class="btn btn-secondary">← Kembali</a>
+        <a href="<?= APP_URL ?>/?p=undangan" class="btn btn-secondary">← Kembali</a>
     </div>
 
+    <div class="container">
     <div class="kop-surat">
         <table style="width: 100%; border: none;">
             <tr>
@@ -186,50 +239,49 @@ $tanggal_indo = "$tgl " . $bulan_indo[$bln] . " $thn";
     </div>
 
     <div class="nomor-surat">
-        <table style="width: 100%;">
-            <tr>
-                <td style="width: 80px;">Nomor</td>
-                <td style="width: 10px;">:</td>
-                <td><?= h($data['nomor_surat']) ?></td>
-                <td style="text-align: right; padding-right: 0;">Campakoah, <?= $tanggal_indo ?></td>
-            </tr>
-            <tr>
-                <td>Lamp.</td>
-                <td>:</td>
-                <td>-</td>
-                <td></td>
-            </tr>
-            <tr>
-                <td>Hal</td>
-                <td>:</td>
-                <td><?= h($data['hal'] ?? $data['perihal']) ?></td>
-                <td></td>
-            </tr>
-            <tr>
-                <td colspan="4" style="padding-top: 10px;"><strong>Kepada</strong></td>
-            </tr>
-            <tr>
-                <td colspan="4">Yth.Bpk/Ibu/Sdr.</td>
-            </tr>
-            <tr>
-                <td colspan="4" style="padding-left: 20px;"><?= h($data['nama']) ?></td>
-            </tr>
-            <tr>
-                <td colspan="4" style="padding-left: 0;">di- <?= h($data['alamat']) ?></td>
-            </tr>
-        </table>
+        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+            <div style="flex: 1;">
+                <table>
+                    <tr>
+                        <td>Nomor</td>
+                        <td>:</td>
+                        <td><?= h($data['nomor_surat']) ?></td>
+                    </tr>
+                    <tr>
+                        <td>Lamp</td>
+                        <td>:</td>
+                        <td>-</td>
+                    </tr>
+                    <tr>
+                        <td>Hal</td>
+                        <td>:</td>
+                        <td><strong><?= h($data['hal'] ?? $data['perihal']) ?></strong></td>
+                    </tr>
+                </table>
+                
+                <div style="margin-top: 20px;">
+                    <p style="margin: 5px 0;">Kepada</p>
+                    <p style="margin: 5px 0;">Yth. Bpk/Ibu/Sdr.</p>
+                    <p style="margin: 5px 0; padding-left: 40px;"><strong><?= h($data['nama']) ?></strong></p>
+                    <p style="margin: 5px 0; padding-left: 40px;">di <strong><?= h($data['alamat']) ?></strong></p>
+                </div>
+            </div>
+            
+            <div style="text-align: right; padding-top: 0;">
+                <p>Campakoah, <?= $tanggal_indo ?></p>
+            </div>
+        </div>
     </div>
 
     <div class="isi-surat">
-        <p style="text-indent: 40px; font-style: italic; margin: 20px 0;">
-            Bismillahirrahmanirrahim<br>
-            Assalamu'alaikum Wr. Wb.
+        <p style="text-indent: 00px; font-style: italic; margin: 25px 0 20px 0;">
+            <em>Bismillahirrahmanirrahim</em><br>
+            <em>Assalamu'alaikum Wr. Wb.</em>
         </p>
         
-        <p style="text-indent: 40px; margin: 20px 0;">
-            Dengan hormat, sehubungan dengan pelaksanaan <?= h($data['hal'] ?? $data['perihal']) ?> dalam rangka <?= h($data['perihal']) ?>, maka kami mohon kehadiran Bapak/Ibu/Sdr. pada:
+        <p style="text-indent: 50px; margin: 20px 0;">
+            Dengan hormat, sehubungan dengan pelaksanaan <strong><?= h($data['hal'] ?? $data['perihal']) ?></strong> dalam rangka <strong><?= h($data['perihal']) ?></strong>, maka kami mohon kehadiran Bapak/Ibu/Sdr. pada:
         </p>
-        
     </div>
 
     <div class="detail-undangan">
@@ -242,7 +294,7 @@ $tanggal_indo = "$tgl " . $bulan_indo[$bln] . " $thn";
             <tr>
                 <td>Pukul</td>
                 <td>:</td>
-                <td><?= h($data['jam']) ?></td>
+                <td><?= date('H:i', strtotime(h($data['jam']))) ?></td>
             </tr>
             <tr>
                 <td>Tempat</td>
@@ -260,28 +312,35 @@ $tanggal_indo = "$tgl " . $bulan_indo[$bln] . " $thn";
     </div>
 
     <div class="isi-surat">
-        <p style="text-indent: 40px; margin: 20px 0;">
+        <p style="text-indent: 50px; margin: 20px 0;">
             Demikian undangan ini kami sampaikan, atas perhatian dan kehadirannya disampaikan terimakasih.
         </p>
         
-        <p style="text-indent: 40px; font-style: italic; margin: 20px 0;">
-            Wassalamu'alaikum Wr. Wb.
+        <p style="text-indent: 00px; font-style: italic; margin: 20px 0;">
+            <em>Wassalamu'alaikum Wr. Wb.</em>
         </p>
     </div>
 
     <div class="ttd">
-        <p>Kepala Desa Campakoah,</p>
-        <div class="ttd-space"></div>
-        <p><strong><u>KUSTOMO</u></strong></p>
+        <p><strong>Kepala Desa Campakoah,</strong></p>
+        <?php if (!empty($ttd_kepala_desa_url)): ?>
+            <img src="<?= h($ttd_kepala_desa_url) ?>" alt="TTD" class="ttd-image" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+            <div class="ttd-space" style="display:none;"></div>
+        <?php else: ?>
+            <div class="ttd-space"></div>
+        <?php endif; ?>
+        <p><strong><u><?= h(strtoupper($nama_kepala_desa)) ?></u></strong></p>
     </div>
 
     <div class="tembusan">
-        <p><strong>Tembusan disampaikan kepada :</strong></p>
+        <p><strong>Tembusan disampaikan kepada:</strong></p>
         <?php if (!empty($data['tembusan_kepada'])): ?>
-        <p><?= nl2br(h($data['tembusan_kepada'])) ?></p>
+        <p style="margin-left: 20px;"><?= nl2br(h($data['tembusan_kepada'])) ?></p>
         <?php else: ?>
-        <p><strong>Tembusan kepada</strong></p>
+        <p style="margin-left: 20px;">-</p>
         <?php endif; ?>
     </div>
+    
+    </div><!-- end container -->
 </body>
 </html>

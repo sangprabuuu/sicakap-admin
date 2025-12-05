@@ -100,7 +100,7 @@ if ($is_skck || $is_pengantar || $is_usaha || $is_sktm || $is_keterangan) {
         }
         
         .kop-surat.with-logo {
-            padding-left: 90px;
+            /* padding-left removed to align with nomor surat */
         }
         
         .kop-surat h2 {
@@ -370,21 +370,19 @@ if ($is_skck || $is_pengantar || $is_usaha || $is_sktm || $is_keterangan) {
     <div class="ttd-kiri">
         <p>Mengetahui,</p>
         <p><strong>CAMAT MREBET</strong></p>
-        <div class="ttd-space"></div>
-        <div class="ttd-space"></div>
-        <p style="min-width: 200px;"><?= h($nama_camat) ?></p>
+        <div style="height: 110px;"></div>
+        <p class="ttd-nama"><?= strtoupper(h($nama_camat)) ?></p>
     </div>
     
     <div class="ttd">
         <p><?= h($nama_desa) ?>,</p>
         <p>an. <strong>KEPALA DESA <?= strtoupper(h($nama_desa)) ?></strong></p>
-        <p></p>
-        <?php if (!empty($ttd_kepala_desa_url)): ?>
-        <img src="<?= h($ttd_kepala_desa_url) ?>" alt="TTD Kepala Desa" class="ttd-image" onerror="this.style.display='none'; console.error('Gagal load gambar TTD:', '<?= h($ttd_kepala_desa_url) ?>');">
-        <!-- Debug: <?= h($ttd_kepala_desa_url) ?> -->
-        <?php else: ?>
-        <div class="ttd-space"></div>
-        <?php endif; ?>
+        <div style="height: 92px; position: relative;">
+            <?php if (!empty($ttd_kepala_desa_url)): ?>
+            <img src="<?= h($ttd_kepala_desa_url) ?>" alt="TTD Kepala Desa" class="ttd-image" onerror="this.style.display='none'; console.error('Gagal load gambar TTD:', '<?= h($ttd_kepala_desa_url) ?>');">
+            <!-- Debug: <?= h($ttd_kepala_desa_url) ?> -->
+            <?php endif; ?>
+        </div>
         <p class="ttd-nama"><?= h($nama_kepala_desa) ?></p>
     </div>
     <div style="clear: both;"></div>

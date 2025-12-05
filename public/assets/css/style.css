@@ -6,7 +6,7 @@ body {
 }
 
 nav {
-    background: #17622a;
+    background: #0B7A2F;
     color: #fff;
     padding: 20px;
     height: 100vh;
@@ -39,7 +39,7 @@ nav ul li a {
 }
 
 .topbar {
-    background: #1f7a34;
+    background: #0B7A2F;
     color: #fff;
     padding: 12px 20px;
     display: flex;
@@ -103,7 +103,7 @@ button {
 }
 
 button {
-    background: #17622a;
+    background: #0B7A2F;
     color: #fff;
     border: 0;
     border-radius: 4px
@@ -120,8 +120,8 @@ button {
 /* style.css - file CSS terpadu untuk dashboard / sidebar / topbar / cards */
 
 :root {
-    --green: #17622a;
-    --dark: #1f7a34;
+    --green: #0B7A2F;
+    --dark: #096624;
     --muted: #f2f2f2;
     --card-bg: #ffffff;
     --text: #222;
@@ -1169,7 +1169,7 @@ a:hover {
 .chart-bar {
     width: 100%;
     min-height: 20px;
-    background: linear-gradient(to top, var(--green), #34d399);
+    background: linear-gradient(to top, #0B7A2F, #10b981);
     border-radius: 4px 4px 0 0;
     position: relative;
     transition: all 0.3s ease;
@@ -1179,7 +1179,7 @@ a:hover {
 }
 
 .chart-bar:hover {
-    background: linear-gradient(to top, var(--dark), var(--green));
+    background: linear-gradient(to top, #096624, #0B7A2F);
 }
 
 .bar-value {
@@ -1253,7 +1253,7 @@ a:hover {
     height: 24px;
     border-radius: 50%;
     background: #fff;
-    border: 3px solid #17622a;
+    border: 3px solid #0B7A2F;
     box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
@@ -1261,7 +1261,7 @@ a:hover {
     background: #f9fafb;
     padding: 15px;
     border-radius: 8px;
-    border-left: 3px solid #17622a;
+    border-left: 3px solid #0B7A2F;
 }
 
 .timeline-header {

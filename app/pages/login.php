@@ -232,16 +232,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         <form method="post" action="?p=login">
           <div class="form-group">
-            <input type="text" name="username" placeholder="Email" required>
+            <input type="text" name="username" placeholder="Username" required>
           </div>
           
           <div class="form-group">
             <input type="password" name="password" placeholder="Password" required>
           </div>
           
-          <div class="forgot-password">
-            <a href="#">No Login Password?</a>
-          </div>
+          
           
           <button type="submit" class="btn-login">Login</button>
         </form>

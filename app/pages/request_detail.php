@@ -298,7 +298,7 @@ $flash = flash_get();
     
     function prosesConfirm() {
       customConfirm({
-        type: 'warning',
+        type: 'success',
         title: 'Proses Pengajuan',
         message: 'Apakah Anda yakin ingin memproses pengajuan ini?',
         okText: 'Ya, Proses',
@@ -347,7 +347,38 @@ $flash = flash_get();
     <?php endif; ?>
 
     <div class="detail-container">
+      <!-- Form Komentar untuk Status Ditolak -->
+      <?php if ($current_status === 'Ditolak'): ?>
+      <div class="detail-card">
+        <div class="detail-header">
+          <h3>Tambah Komentar</h3>
+        </div>
+        
+        <form method="post" action="?p=request_approve" style="padding: 20px;">
+          <input type="hidden" name="pengajuan_id" value="<?= h($id) ?>">
+          <input type="hidden" name="action" value="kirim_komentar">
+          
+          <div style="margin-bottom: 15px;">
+            <label for="komentar" style="display: block; margin-bottom: 8px; font-weight: 500;">Alasan Penolakan:</label>
+            <textarea 
+              name="komentar" 
+              id="komentar" 
+              rows="4" 
+              required
+              placeholder="Masukkan alasan penolakan untuk pemohon..."
+              style="width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 4px; font-size: 14px; font-family: inherit; resize: vertical;"
+            ></textarea>
+          </div>
+          
+          <button type="submit" class="btn btn-primary">
+            Kirim Alasan Penolakan
+          </button>
+        </form>
+      </div>
+      <?php endif; ?>
+      
       <!-- Info Permintaan -->
+      <?php if ($current_status !== 'Ditolak'): ?>
       <div class="detail-card">
         <div class="detail-header">
           <h3>Informasi Permintaan</h3>
@@ -403,6 +434,7 @@ $flash = flash_get();
           <?php endif; ?>
         </table>
       </div>
+      <?php endif; ?>
 
       <!-- Info Pemohon -->
       <div class="detail-card">
@@ -442,7 +474,7 @@ $flash = flash_get();
               <td><?= h($request['status_perkawinan'] ?? '-') ?></td>
             </tr>
             <tr>
-              <td>8. alamat tempat tinggal</td>
+              <td class="label">8. Alamat Tempat Tinggal</td>
                 <td><?= h($request['alamat'] ?? '') ?></td>
               </tr>
             <tr>
@@ -608,37 +640,8 @@ $flash = flash_get();
         </table>
       </div>
 
-      <!-- Form Komentar untuk Status Ditolak -->
-      <?php if ($current_status === 'Ditolak'): ?>
-      <div class="detail-card">
-        <div class="detail-header">
-          <h3>Tambah Komentar</h3>
-        </div>
-        
-        <form method="post" action="?p=request_approve" style="padding: 20px;">
-          <input type="hidden" name="pengajuan_id" value="<?= h($id) ?>">
-          <input type="hidden" name="action" value="kirim_komentar">
-          
-          <div style="margin-bottom: 15px;">
-            <label for="komentar" style="display: block; margin-bottom: 8px; font-weight: 500;">Alasan Penolakan:</label>
-            <textarea 
-              name="komentar" 
-              id="komentar" 
-              rows="4" 
-              required
-              placeholder="Masukkan alasan penolakan untuk pemohon..."
-              style="width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 4px; font-size: 14px; font-family: inherit; resize: vertical;"
-            ></textarea>
-          </div>
-          
-          <button type="submit" class="btn btn-primary">
-            Kirim Alasan Penolakan
-          </button>
-        </form>
-      </div>
-      <?php endif; ?>
-
       <!-- Form Data Pejabat & TTD -->
+      <?php if ($current_status !== 'Ditolak'): ?>
       <div class="detail-card">
         <div class="detail-header">
           <h3>Data Pejabat & Tanda Tangan</h3>
@@ -680,10 +683,11 @@ $flash = flash_get();
           </div>
           
           <button type="submit" class="btn btn-primary" style="margin-top: 10px;">
-            💾 Simpan Data Pejabat & TTD
+            Simpan Data Pejabat & TTD
           </button>
         </form>
       </div>
+      <?php endif; ?>
 
       <!-- Actions -->
       <div class="detail-card">
@@ -728,7 +732,7 @@ $flash = flash_get();
             </a>
           <?php endif; ?>
           
-          <a href="?p=requests" class="btn btn-light">← Kembali</a>
+          <a href="?p=requests" class="btn btn-light">Kembali</a>
         </div>
       </div>
     </div>
